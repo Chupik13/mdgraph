@@ -11,7 +11,7 @@ export const GraphCanvas: React.FC = () => {
   const isLoading = useGraphStore((state) => state.isLoading);
   const error = useGraphStore((state) => state.error);
 
-  const { network, isReady } = useGraphNetwork(containerRef, graphData);
+  const { network } = useGraphNetwork(containerRef, graphData);
 
   useNodeColoring(network);
   useNodeSearch();

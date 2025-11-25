@@ -9,7 +9,6 @@ export const useCommandLine = (_inputRef: RefObject<HTMLInputElement>) => {
   const close = useCommandLineStore((state) => state.close);
   const input = useCommandLineStore((state) => state.input);
   const currentMode = useAppModeStore((state) => state.currentMode);
-  const setMode = useAppModeStore((state) => state.setMode);
   const setActiveNodes = useColoringStore((state) => state.setActiveNodes);
   const selectedNodeId = useColoringStore((state) => state.selectedNodeId);
   const focusedNodeId = useColoringStore((state) => state.focusedNodeId);
