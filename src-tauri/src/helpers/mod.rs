@@ -23,7 +23,7 @@ use chrono::{Datelike, Local};
 /// # Examples
 ///
 /// ```
-/// use mdgraph2_lib::helpers::replace_variables;
+/// use mdgraph_lib::helpers::replace_variables;
 ///
 /// let template = "Date: {{date}}, Week: {{week}}";
 /// let result = replace_variables(template);

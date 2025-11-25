@@ -29,7 +29,7 @@ use crate::helpers;
 /// # Examples
 ///
 /// ```no_run
-/// use mdgraph2_lib::templates::load_template;
+/// use mdgraph_lib::templates::load_template;
 ///
 /// let content = load_template("/path/to/template.md")?;
 /// assert!(content.contains("{{date}}"));
@@ -92,7 +92,7 @@ pub fn load_template(template_path: &str) -> Result<String, String> {
 /// # Examples
 ///
 /// ```no_run
-/// use mdgraph2_lib::templates::create_from_template;
+/// use mdgraph_lib::templates::create_from_template;
 ///
 /// // Template file contains: "# Note\n\nCreated: {{date}}\n"
 /// create_from_template(
