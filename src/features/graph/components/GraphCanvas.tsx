@@ -1,29 +1,43 @@
 import React, { useRef } from 'react';
 import { useGraphStore } from '../store/graphStore';
 import { useGraphNetwork } from '../hooks/useGraphNetwork';
+import { useGraphDeltaSync } from '../hooks/useGraphDeltaSync';
 import { useNodeSearch } from '../hooks/useNodeSearch';
 import { useNodeSelection } from '../hooks/useNodeSelection';
 import { useNodeColoring } from '../../coloring';
 
 export const GraphCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphData = useGraphStore((state) => state.graphData);
-  const isLoading = useGraphStore((state) => state.isLoading);
-  const error = useGraphStore((state) => state.error);
+  const graphData = useGraphStore(state => state.graphData);
+  const isLoading = useGraphStore(state => state.isLoading);
+  const error = useGraphStore(state => state.error);
 
   const { network } = useGraphNetwork(containerRef, graphData);
 
   useNodeColoring(network);
   useNodeSearch();
   useNodeSelection();
+  useGraphDeltaSync(network);
 
   return (
     <div className="relative w-full h-full bg-transparent">
-      {/* vis-network */}
-      <div ref={containerRef} className="w-full h-full" data-testid="graph-canvas" />
+      {/* vis-network canvas */}
+      <div
+        ref={containerRef}
+        className="w-full h-full"
+        data-testid="graph-canvas"
+        role="application"
+        aria-label="Knowledge graph visualization"
+        aria-busy={isLoading}
+        aria-live="polite"
+      />
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/90">
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-white/90"
+          role="alert"
+          aria-live="assertive"
+        >
           <div className="max-w-md p-6 bg-red-50 border border-red-200 rounded-lg">
             <h3 className="text-lg font-semibold text-red-900 mb-2">Graph loading error</h3>
             <p className="text-sm text-red-700">{error}</p>
@@ -39,6 +53,7 @@ export const GraphCanvas: React.FC = () => {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -48,7 +63,10 @@ export const GraphCanvas: React.FC = () => {
               />
             </svg>
             <p className="text-lg font-medium mb-2">No data to display</p>
-            <p className="text-sm text-gray-400">Select a directory with markdown files</p>
+            <p className="text-sm text-gray-400">
+              Select a directory with markdown files to begin visualization. Use hjkl keys for
+              navigation once loaded.
+            </p>
           </div>
         </div>
       )}

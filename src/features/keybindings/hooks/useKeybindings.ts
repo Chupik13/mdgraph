@@ -79,22 +79,22 @@ import type { KeybindingAction } from '../store/keybindingStore';
  * // - Press 'Escape' to cancel/exit
  */
 export const useKeybindings = () => {
-  const findAction = useKeybindingStore((state) => state.findAction);
-  const setMode = useAppModeStore((state) => state.setMode);
+  const findAction = useKeybindingStore(state => state.findAction);
+  const setMode = useAppModeStore(state => state.setMode);
 
   const { navigateLeft, navigateRight, navigateUp, navigateDown } = useVimNavigation();
   const { navigateNextConnected, navigatePrevConnected } = useConnectedNavigation();
 
-  const graphData = useGraphStore((state) => state.graphData);
-  const selectNode = useColoringStore((state) => state.selectNode);
-  const focusNode = useColoringStore((state) => state.focusNode);
-  const networkInstance = useGraphStore((state) => state.networkInstance);
+  const graphData = useGraphStore(state => state.graphData);
+  const selectNode = useColoringStore(state => state.selectNode);
+  const focusNode = useColoringStore(state => state.focusNode);
+  const networkInstance = useGraphStore(state => state.networkInstance);
 
   const cameraService = useMemo(() => {
     return networkInstance ? new CameraService(networkInstance) : null;
   }, [networkInstance]);
 
-  const openCommandLine = useCommandLineStore((state) => state.open);
+  const openCommandLine = useCommandLineStore(state => state.open);
 
   /**
    * Executes an action based on its type.
@@ -115,7 +115,7 @@ export const useKeybindings = () => {
    */
   const executeAction = useCallback(
     async (action: KeybindingAction) => {
-    console.log('Executing action:', action);
+      console.log('Executing action:', action);
       switch (action) {
         case 'graph.selectLeft':
           navigateLeft();
@@ -150,14 +150,14 @@ export const useKeybindings = () => {
           const { focusedNodeId } = useColoringStore.getState();
           const { graphData } = useGraphStore.getState();
           if (focusedNodeId && graphData) {
-              const node = graphData.nodes.find((n) => n.id === focusedNodeId);
-              try {
-                  if(node && node.id){
-                      await TauriCommands.openFile(node?.id);
-                  }
-              } catch (error) {
-                  console.error('Failed to open file:', error);
+            const node = graphData.nodes.find(n => n.id === focusedNodeId);
+            try {
+              if (node && node.id) {
+                await TauriCommands.openFile(node?.id);
               }
+            } catch (error) {
+              console.error('Failed to open file:', error);
+            }
           }
           break;
         }
@@ -227,7 +227,7 @@ export const useKeybindings = () => {
       cameraService,
       openCommandLine,
       graphData,
-    ],
+    ]
   );
 
   /**
@@ -261,7 +261,7 @@ export const useKeybindings = () => {
 
       executeAction(action);
     },
-    [findAction, executeAction],
+    [findAction, executeAction]
   );
 
   useEffect(() => {

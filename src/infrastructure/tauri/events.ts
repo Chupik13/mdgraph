@@ -9,7 +9,7 @@
  */
 
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { GraphData } from '../../shared/types';
+import type { GraphData, GraphDeltaEvent } from '../../shared/types';
 
 /**
  * Collection of type-safe Tauri event listeners.
@@ -67,8 +67,100 @@ export const TauriEvents = {
    * }, []);
    */
   onGraphUpdate(callback: (graphData: GraphData) => void): Promise<UnlistenFn> {
-    return listen<GraphData>('graph-update', (event) => {
-      callback(event.payload);
+    return listen<GraphData>('graph-update', event => {
+      try {
+        // Validate basic structure before passing to callback
+        if (!event.payload || typeof event.payload !== 'object') {
+          console.error('Invalid graph update payload:', event.payload);
+          return;
+        }
+
+        const graphData = event.payload;
+
+        if (!Array.isArray(graphData.nodes) || !Array.isArray(graphData.edges)) {
+          console.error('Graph update payload missing nodes or edges arrays:', graphData);
+          return;
+        }
+
+        callback(graphData);
+      } catch (error) {
+        console.error('Error processing graph update event:', error);
+      }
+    });
+  },
+
+  /**
+   * Subscribes to incremental graph delta events from the backend.
+   *
+   * This event is emitted when the backend file watcher detects changes to markdown
+   * files. Unlike `onGraphUpdate`, this provides granular updates for individual
+   * nodes and edges, enabling incremental visualization updates without full redraws.
+   *
+   * @param callback - Function called when a delta event is received.
+   *                   Receives the specific change (node added/removed, edge added/removed).
+   * @returns Promise that resolves to an unlisten function.
+   *
+   * @remarks
+   * - Events are emitted for each individual change (not batched)
+   * - Use this for real-time updates to maintain node positions
+   * - The vis-network DataSet API should be used for efficient updates
+   * - Invalid events are logged but don't crash the application
+   *
+   * @example
+   * TauriEvents.onGraphDelta((event) => {
+   *   switch (event.type) {
+   *     case 'node-added':
+   *       nodesDataSet.add(event.node);
+   *       break;
+   *     case 'node-removed':
+   *       nodesDataSet.remove(event.node_id);
+   *       break;
+   *     // ... handle other event types
+   *   }
+   * });
+   */
+  onGraphDelta(callback: (event: GraphDeltaEvent) => void): Promise<UnlistenFn> {
+    return listen<GraphDeltaEvent>('graph-delta', event => {
+      try {
+        // Validate event structure
+        if (!event.payload || typeof event.payload !== 'object' || !('type' in event.payload)) {
+          console.error('Invalid graph delta payload:', event.payload);
+          return;
+        }
+
+        const deltaEvent = event.payload;
+
+        // Validate event-specific data
+        switch (deltaEvent.type) {
+          case 'node-added':
+          case 'node-updated':
+            if (!deltaEvent.node || typeof deltaEvent.node !== 'object') {
+              console.error('Invalid node in delta event:', deltaEvent);
+              return;
+            }
+            break;
+          case 'node-removed':
+            if (!deltaEvent.node_id || typeof deltaEvent.node_id !== 'string') {
+              console.error('Invalid node_id in delta event:', deltaEvent);
+              return;
+            }
+            break;
+          case 'edge-added':
+          case 'edge-removed':
+            if (!deltaEvent.edge || typeof deltaEvent.edge !== 'object') {
+              console.error('Invalid edge in delta event:', deltaEvent);
+              return;
+            }
+            break;
+          default:
+            console.warn('Unknown delta event type:', deltaEvent);
+            return;
+        }
+
+        callback(deltaEvent);
+      } catch (error) {
+        console.error('Error processing graph delta event:', error);
+      }
     });
   },
 };

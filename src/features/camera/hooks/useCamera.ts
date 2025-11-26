@@ -8,10 +8,10 @@ import { useCameraStore } from '../store/cameraStore';
  * Provides CameraService instance and camera state
  */
 export const useCamera = () => {
-  const networkInstance = useGraphStore((state) => state.networkInstance);
-  const scale = useCameraStore((state) => state.scale);
-  const position = useCameraStore((state) => state.position);
-  const isAnimating = useCameraStore((state) => state.isAnimating);
+  const networkInstance = useGraphStore(state => state.networkInstance);
+  const scale = useCameraStore(state => state.scale);
+  const position = useCameraStore(state => state.position);
+  const isAnimating = useCameraStore(state => state.isAnimating);
 
   const cameraService = useMemo(() => {
     return networkInstance ? new CameraService(networkInstance) : null;

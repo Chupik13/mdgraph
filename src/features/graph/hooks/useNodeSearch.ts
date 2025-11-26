@@ -3,6 +3,7 @@ import { useGraphStore } from '../store/graphStore';
 import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
+import type { Node } from '../../../shared/types';
 
 /**
  * Hook for searching nodes by name (label)
@@ -12,12 +13,14 @@ import { useAppModeStore } from '../../../shared/store/appModeStore';
  * - In search mode: filters nodes by query (case-insensitive)
  * - Empty query: all nodes active (activeNodeIds = null)
  * - Not in search mode: all nodes active
+ *
+ * Uses vis-network DataSet as source of truth to include delta-synced nodes.
  */
 export const useNodeSearch = () => {
-  const graphData = useGraphStore((state) => state.graphData);
-  const setActiveNodes = useColoringStore((state) => state.setActiveNodes);
-  const input = useCommandLineStore((state) => state.input);
-  const currentMode = useAppModeStore((state) => state.currentMode);
+  const networkInstance = useGraphStore(state => state.networkInstance);
+  const setActiveNodes = useColoringStore(state => state.setActiveNodes);
+  const input = useCommandLineStore(state => state.input);
+  const currentMode = useAppModeStore(state => state.currentMode);
 
   useEffect(() => {
     if (currentMode !== 'search') {
@@ -25,7 +28,7 @@ export const useNodeSearch = () => {
       return;
     }
 
-    if (!graphData) {
+    if (!networkInstance) {
       return;
     }
 
@@ -34,11 +37,16 @@ export const useNodeSearch = () => {
       return;
     }
 
+    // Use vis-network DataSet as source of truth (includes delta-synced nodes)
+    // @ts-expect-error - accessing internal vis-network structure
+    const nodesDataSet = networkInstance.body.data.nodes;
+    const allNodes = nodesDataSet.get() as Node[];
+
     const query = input.toLowerCase();
-    const matchedNodeIds = graphData.nodes
-      .filter((node) => node.label.toLowerCase().includes(query))
-      .map((node) => node.id);
+    const matchedNodeIds = allNodes
+      .filter((node: Node) => node.label.toLowerCase().includes(query))
+      .map((node: Node) => node.id);
 
     setActiveNodes(matchedNodeIds);
-  }, [currentMode, input, graphData, setActiveNodes]);
+  }, [currentMode, input, networkInstance, setActiveNodes]);
 };

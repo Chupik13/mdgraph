@@ -64,49 +64,67 @@ import type { GraphData } from '../../../shared/types';
  */
 export const useGraphNetwork = (
   containerRef: RefObject<HTMLDivElement | null>,
-  graphData: GraphData | null,
+  graphData: GraphData | null
 ) => {
   const [network, setNetwork] = useState<Network | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const setNetworkInstance = useGraphStore((state) => state.setNetworkInstance);
+  const setNetworkInstance = useGraphStore(state => state.setNetworkInstance);
 
   useEffect(() => {
     if (!containerRef.current || !graphData) return;
 
+    let isMounted = true;
     const options = getVisNetworkOptions();
 
     const nodesDataSet = new DataSet(
-      graphData.nodes.map((node) => {
-        const baseNode: any = JSON.parse(JSON.stringify(node));
+      graphData.nodes.map(node => {
+        const baseNode = {
+          ...node,
+        };
 
         if (node.group === 'phantom') {
           return { ...baseNode, ...getPhantomNodeStyle() };
         }
 
         return { ...baseNode, ...getRegularNodeStyle() };
-      }),
+      })
     );
 
+    // Deduplicate edges by ID (same link can appear multiple times in a file)
+    const uniqueEdges = new Map<string, { from: string; to: string }>();
+    graphData.edges.forEach(edge => {
+      const id = `${edge.from}->${edge.to}`;
+      if (!uniqueEdges.has(id)) {
+        uniqueEdges.set(id, { from: edge.from, to: edge.to });
+      }
+    });
+
     const edgesDataSet = new DataSet(
-      graphData.edges.map((edge: any) => JSON.parse(JSON.stringify(edge))),
+      Array.from(uniqueEdges.entries()).map(([id, edge]) => ({
+        id,
+        ...edge,
+      }))
     );
 
     const networkInstance = new Network(
       containerRef.current,
       {
-        nodes: nodesDataSet,
-        edges: edgesDataSet,
+        // Type assertion needed because vis-network doesn't properly type extended node properties
+        nodes: nodesDataSet as any,
+        edges: edgesDataSet as any,
       },
-      options,
+      options
     );
 
     networkInstance.once('stabilized', () => {
-      networkInstance.setOptions({ physics: { enabled: false } });
-      setIsReady(true);
+      if (isMounted) {
+        networkInstance.setOptions({ physics: { enabled: false } });
+        setIsReady(true);
+      }
     });
 
     const timeout = setTimeout(() => {
-      if (networkInstance) {
+      if (isMounted && networkInstance) {
         networkInstance.stopSimulation();
         networkInstance.setOptions({ physics: { enabled: false } });
         setIsReady(true);
@@ -117,6 +135,7 @@ export const useGraphNetwork = (
     setNetworkInstance(networkInstance);
 
     return () => {
+      isMounted = false;
       clearTimeout(timeout);
       networkInstance.destroy();
       setNetwork(null);

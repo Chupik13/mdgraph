@@ -5,18 +5,18 @@ import { useAppModeStore } from '../../../shared/store/appModeStore';
 import { useColoringStore } from '../../coloring';
 
 export const useCommandLine = (_inputRef: RefObject<HTMLInputElement>) => {
-  const isOpen = useCommandLineStore((state) => state.isOpen);
-  const close = useCommandLineStore((state) => state.close);
-  const input = useCommandLineStore((state) => state.input);
-  const currentMode = useAppModeStore((state) => state.currentMode);
-  const setActiveNodes = useColoringStore((state) => state.setActiveNodes);
-  const selectedNodeId = useColoringStore((state) => state.selectedNodeId);
-  const focusedNodeId = useColoringStore((state) => state.focusedNodeId);
+  const isOpen = useCommandLineStore(state => state.isOpen);
+  const close = useCommandLineStore(state => state.close);
+  const input = useCommandLineStore(state => state.input);
+  const currentMode = useAppModeStore(state => state.currentMode);
+  const setActiveNodes = useColoringStore(state => state.setActiveNodes);
+  const selectedNodeId = useColoringStore(state => state.selectedNodeId);
+  const focusedNodeId = useColoringStore(state => state.focusedNodeId);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (!isOpen) {
-          return; 
+        return;
       }
 
       switch (event.key) {
@@ -41,7 +41,7 @@ export const useCommandLine = (_inputRef: RefObject<HTMLInputElement>) => {
           break;
       }
     },
-    [isOpen, close, input, currentMode, selectedNodeId, focusedNodeId, setActiveNodes],
+    [isOpen, close, input, currentMode, selectedNodeId, focusedNodeId, setActiveNodes]
   );
 
   useEffect(() => {

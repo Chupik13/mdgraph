@@ -63,192 +63,230 @@ import type { Node } from '../../../shared/types';
  * // Press 'j' -> navigateDown()
  */
 export const useVimNavigation = () => {
+  const focusedNodeId = useColoringStore(state => state.focusedNodeId);
+  const activeNodeIds = useColoringStore(state => state.activeNodeIds);
+  const focusNode = useColoringStore(state => state.focusNode);
+  const networkInstance = useGraphStore(state => state.networkInstance);
 
-    let focusedNodeId = useColoringStore((state) => state.focusedNodeId);
-    const activeNodeIds = useColoringStore((state) => state.activeNodeIds);
-    const graphData = useGraphStore((state) => state.graphData);
-    const focusNode = useColoringStore((state) => state.focusNode);
-    const networkInstance = useGraphStore((state) => state.networkInstance);
+  const cameraService = useMemo(() => {
+    return networkInstance ? new CameraService(networkInstance) : null;
+  }, [networkInstance]);
 
-    const cameraService = useMemo(() => {
-        return networkInstance ? new CameraService(networkInstance) : null;
-    }, [networkInstance]);
+  /**
+   * Gets nodes directly from vis-network DataSet.
+   * This reads runtime state and works with dynamically added nodes.
+   */
+  const getNodesFromNetwork = useCallback((): Node[] => {
+    if (!networkInstance) return [];
+    // @ts-expect-error - accessing internal vis-network structure
+    const nodesDataSet = networkInstance.body.data.nodes;
+    return nodesDataSet.get() as Node[];
+  }, [networkInstance]);
 
-    /**
-     * Finds the nearest node in a specified direction.
-     *
-     * Searches through all nodes to find the best candidate based on positional
-     * scoring. Only considers nodes that are actually in the specified direction
-     * from the current focus.
-     *
-     * @param direction - Cardinal direction to search ('left', 'right', 'up', 'down')
-     * @returns The best candidate node, or null if none found
-     *
-     * @remarks
-     * ## Directional Checks
-     * - **left**: dx <= 0 (target is to the left or at same x)
-     * - **right**: dx >= 0 (target is to the right or at same x)
-     * - **up**: dy <= 0 (target is above or at same y, note: y increases downward)
-     * - **down**: dy >= 0 (target is below or at same y)
-     *
-     * ## Scoring Formula
-     * ```
-     * score = distance + |perpendicular_offset| * 2
-     * ```
-     * Where:
-     * - distance = Euclidean distance to candidate
-     * - perpendicular_offset = distance in the perpendicular axis
-     * - The *2 multiplier strongly favors aligned nodes
-     *
-     * ## Edge Cases
-     * - If only one active node exists, it can navigate to itself
-     * - If network instance is missing, returns null
-     * - If no nodes are in the specified direction, returns null
-     */
-    const findNearestNodeInDirection = useCallback(
-        (direction: 'left' | 'right' | 'up' | 'down'): Node | null => {
-
-            if (!graphData || !networkInstance) {
-                return null;
-            }
-
-            if(!focusedNodeId) {
-                if(activeNodeIds && activeNodeIds.size > 0) {
-                    focusedNodeId = Array.from(activeNodeIds)[0]!;
-                } else {
-                    focusedNodeId = graphData.nodes[0]?.id!;
-                }
-            }
-
-            const positions = networkInstance.getPositions();
-            const currentPos = positions[focusedNodeId];
-
-            if (!currentPos) {
-                return null;
-            }
-
-            let bestNode: Node | null = null;
-            let bestScore = Infinity;
-
-            graphData.nodes.forEach((node) => {
-                if (node.id === focusedNodeId) {
-                    if(!activeNodeIds || activeNodeIds.size !== 1) {
-                        return;
-                    }
-                }
-
-                if(activeNodeIds && !activeNodeIds.has(node.id)) {
-                    return;
-                }
-
-                const nodePos = positions[node.id];
-                if (!nodePos) {
-                    return;
-                }
-
-                const dx = nodePos.x - currentPos.x;
-                const dy = nodePos.y - currentPos.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                let isInDirection = false;
-                let directionalScore = Infinity;
-
-                switch (direction) {
-                    case 'left':
-                        if (dx <= 0) {
-                            isInDirection = true;
-                            directionalScore = distance + Math.abs(dy) * 2;
-                        }
-                        break;
-                    case 'down':
-                        if (dy >= 0) {
-                            isInDirection = true;
-                            directionalScore = distance + Math.abs(dx) * 2;
-                        }
-                        break;
-                    case 'up':
-                        if (dy <= 0) {
-                            isInDirection = true;
-                            directionalScore = distance + Math.abs(dx) * 2;
-                        }
-                        break;
-                    case 'right':
-                        if (dx >= 0) {
-                            isInDirection = true;
-                            directionalScore = distance + Math.abs(dy) * 2;
-                        }
-                        break;
-                }
-
-                if (isInDirection && directionalScore < bestScore) {
-                    bestScore = directionalScore;
-                    bestNode = node;
-                }
-            });
-
-            return bestNode;
-        },
-        [focusedNodeId, graphData, networkInstance, activeNodeIds],
-    );
-
-    /**
-     * Navigates to a specific node by ID.
-     *
-     * Updates the focused node in the store and moves the camera to center
-     * on the node with slight zoom.
-     *
-     * @param nodeId - ID of the node to navigate to
-     */
-    const navigateToNode = (nodeId: string) => {
-            focusNode(nodeId);
-            if(cameraService) {
-                cameraService.focusOnNode(nodeId, 1.3);
-            }
+  /**
+   * Gets the effective focused node ID, with fallback logic.
+   *
+   * If no node is currently focused:
+   * - Returns first active node if search is active
+   * - Returns first node in graph otherwise
+   *
+   * @returns Node ID to use as navigation origin, or null if no nodes available
+   */
+  const getEffectiveFocusedNodeId = useCallback((): string | null => {
+    if (focusedNodeId) {
+      return focusedNodeId;
     }
 
-    return {
-        /**
-         * Navigates to the nearest node to the left.
-         * Bound to 'h' key in vim-style navigation.
-         */
-        navigateLeft: useCallback(() => {
-            const node = findNearestNodeInDirection('left');
-            if (node) {
-                navigateToNode(node.id);
-            }
-        }, [findNearestNodeInDirection, focusNode, navigateToNode, cameraService]),
+    const nodes = getNodesFromNetwork();
+    if (nodes.length === 0) {
+      return null;
+    }
 
-        /**
-         * Navigates to the nearest node to the right.
-         * Bound to 'l' key in vim-style navigation.
-         */
-        navigateRight: useCallback(() => {
-            const node = findNearestNodeInDirection('right');
-            if (node) {
-                navigateToNode(node.id);
-            }
-        }, [findNearestNodeInDirection, focusNode, navigateToNode, cameraService]),
+    if (activeNodeIds && activeNodeIds.size > 0) {
+      return Array.from(activeNodeIds)[0] ?? null;
+    }
 
-        /**
-         * Navigates to the nearest node above.
-         * Bound to 'k' key in vim-style navigation.
-         */
-        navigateUp: useCallback(() => {
-            const node = findNearestNodeInDirection('up');
-            if (node) {
-                navigateToNode(node.id);
-            }
-        }, [findNearestNodeInDirection, focusNode, navigateToNode, cameraService]),
+    return nodes[0]?.id ?? null;
+  }, [focusedNodeId, activeNodeIds, getNodesFromNetwork]);
 
-        /**
-         * Navigates to the nearest node below.
-         * Bound to 'j' key in vim-style navigation.
-         */
-        navigateDown: useCallback(() => {
-            const node = findNearestNodeInDirection('down');
-            if (node) {
-                navigateToNode(node.id);
+  /**
+   * Finds the nearest node in a specified direction.
+   *
+   * Searches through all nodes to find the best candidate based on positional
+   * scoring. Only considers nodes that are actually in the specified direction
+   * from the current focus.
+   *
+   * @param direction - Cardinal direction to search ('left', 'right', 'up', 'down')
+   * @returns The best candidate node, or null if none found
+   *
+   * @remarks
+   * ## Directional Checks
+   * - **left**: dx <= 0 (target is to the left or at same x)
+   * - **right**: dx >= 0 (target is to the right or at same x)
+   * - **up**: dy <= 0 (target is above or at same y, note: y increases downward)
+   * - **down**: dy >= 0 (target is below or at same y)
+   *
+   * ## Scoring Formula
+   * ```
+   * score = distance + |perpendicular_offset| * 2
+   * ```
+   * Where:
+   * - distance = Euclidean distance to candidate
+   * - perpendicular_offset = distance in the perpendicular axis
+   * - The *2 multiplier strongly favors aligned nodes
+   *
+   * ## Edge Cases
+   * - If only one active node exists, it can navigate to itself
+   * - If network instance is missing, returns null
+   * - If no nodes are in the specified direction, returns null
+   */
+  const findNearestNodeInDirection = useCallback(
+    (direction: 'left' | 'right' | 'up' | 'down'): Node | null => {
+      const nodes = getNodesFromNetwork();
+
+      if (nodes.length === 0 || !networkInstance) {
+        return null;
+      }
+
+      const effectiveFocusedId = getEffectiveFocusedNodeId();
+      if (!effectiveFocusedId) {
+        return null;
+      }
+
+      const positions = networkInstance.getPositions();
+      const currentPos = positions[effectiveFocusedId];
+
+      if (!currentPos) {
+        return null;
+      }
+
+      let bestNode: Node | null = null;
+      let bestScore = Infinity;
+
+      nodes.forEach(node => {
+        // Skip current node unless it's the only active node
+        if (node.id === effectiveFocusedId) {
+          if (!activeNodeIds || activeNodeIds.size !== 1) {
+            return;
+          }
+        }
+
+        // Skip nodes not in active set when filtering is active
+        if (activeNodeIds && !activeNodeIds.has(node.id)) {
+          return;
+        }
+
+        const nodePos = positions[node.id];
+        if (!nodePos) {
+          return;
+        }
+
+        const dx = nodePos.x - currentPos.x;
+        const dy = nodePos.y - currentPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        let isInDirection = false;
+        let directionalScore = Infinity;
+
+        switch (direction) {
+          case 'left':
+            if (dx <= 0) {
+              isInDirection = true;
+              directionalScore = distance + Math.abs(dy) * 2;
             }
-        }, [findNearestNodeInDirection, focusNode, navigateToNode, cameraService]),
-    };
+            break;
+          case 'down':
+            if (dy >= 0) {
+              isInDirection = true;
+              directionalScore = distance + Math.abs(dx) * 2;
+            }
+            break;
+          case 'up':
+            if (dy <= 0) {
+              isInDirection = true;
+              directionalScore = distance + Math.abs(dx) * 2;
+            }
+            break;
+          case 'right':
+            if (dx >= 0) {
+              isInDirection = true;
+              directionalScore = distance + Math.abs(dy) * 2;
+            }
+            break;
+        }
+
+        if (isInDirection && directionalScore < bestScore) {
+          bestScore = directionalScore;
+          bestNode = node;
+        }
+      });
+
+      return bestNode;
+    },
+    [getNodesFromNetwork, networkInstance, activeNodeIds, getEffectiveFocusedNodeId]
+  );
+
+  /**
+   * Navigates to a specific node by ID.
+   *
+   * Updates the focused node in the store and moves the camera to center
+   * on the node with slight zoom.
+   *
+   * @param nodeId - ID of the node to navigate to
+   */
+  const navigateToNode = useCallback(
+    (nodeId: string) => {
+      focusNode(nodeId);
+      if (cameraService) {
+        cameraService.focusOnNode(nodeId, 1.3);
+      }
+    },
+    [focusNode, cameraService]
+  );
+
+  return {
+    /**
+     * Navigates to the nearest node to the left.
+     * Bound to 'h' key in vim-style navigation.
+     */
+    navigateLeft: useCallback(() => {
+      const node = findNearestNodeInDirection('left');
+      if (node) {
+        navigateToNode(node.id);
+      }
+    }, [findNearestNodeInDirection, navigateToNode]),
+
+    /**
+     * Navigates to the nearest node to the right.
+     * Bound to 'l' key in vim-style navigation.
+     */
+    navigateRight: useCallback(() => {
+      const node = findNearestNodeInDirection('right');
+      if (node) {
+        navigateToNode(node.id);
+      }
+    }, [findNearestNodeInDirection, navigateToNode]),
+
+    /**
+     * Navigates to the nearest node above.
+     * Bound to 'k' key in vim-style navigation.
+     */
+    navigateUp: useCallback(() => {
+      const node = findNearestNodeInDirection('up');
+      if (node) {
+        navigateToNode(node.id);
+      }
+    }, [findNearestNodeInDirection, navigateToNode]),
+
+    /**
+     * Navigates to the nearest node below.
+     * Bound to 'j' key in vim-style navigation.
+     */
+    navigateDown: useCallback(() => {
+      const node = findNearestNodeInDirection('down');
+      if (node) {
+        navigateToNode(node.id);
+      }
+    }, [findNearestNodeInDirection, navigateToNode]),
+  };
 };

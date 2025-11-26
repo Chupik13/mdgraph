@@ -8,7 +8,7 @@ export default defineConfig({
   clearScreen: false,
   root: 'src',
   server: {
-    port: 1420,
+    port: 1421,
     strictPort: true,
   },
   envPrefix: ['VITE_', 'TAURI_'],

@@ -151,9 +151,7 @@ export function getNodeStyle(type: NodeType, isHoveredOrFocused: boolean = false
 
   return {
     color: {
-      border: isHoveredOrFocused
-        ? brightenColor(baseColors.border, 100)
-        : baseColors.border,
+      border: isHoveredOrFocused ? brightenColor(baseColors.border, 100) : baseColors.border,
       background: baseColors.background,
       highlight: {
         border: brightenColor(baseColors.border, 100),
@@ -166,9 +164,9 @@ export function getNodeStyle(type: NodeType, isHoveredOrFocused: boolean = false
     },
     borderWidth: 2,
     borderWidthSelected: 3,
-      font: {
-        color: '#FFFFFF',
-      },
+    font: {
+      color: '#FFFFFF',
+    },
   };
 }
 
