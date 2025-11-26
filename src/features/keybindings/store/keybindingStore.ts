@@ -45,6 +45,8 @@ export type KeybindingAction =
   | 'viewport.fitAll'
   | 'navigation.back'
   | 'navigation.forward'
+  | 'search.nextResult'
+  | 'search.prevResult'
   | 'app.toggleSidebar'
   | 'app.openCommandPalette'
   | 'app.openCommandMode'

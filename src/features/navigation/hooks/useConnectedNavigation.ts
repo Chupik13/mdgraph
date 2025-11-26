@@ -12,6 +12,7 @@ import { useCallback, useMemo } from 'react';
 import { useGraphStore } from '../../graph/store/graphStore';
 import { useColoringStore } from '../../coloring';
 import { CameraService } from '../../camera';
+import { sortNodesByAngle } from '../utils';
 
 /**
  * Hook for navigating through connected nodes in clockwise/counterclockwise order.
@@ -112,28 +113,7 @@ export const useConnectedNavigation = () => {
       return [];
     }
 
-    const nodesWithAngles = Array.from(connectedNodeIds).map((nodeId) => {
-      const nodePos = positions[nodeId];
-
-      if (!nodePos) {
-        return { nodeId, angle: 0 };
-      }
-
-      const dx = nodePos.x - selectedPos.x;
-      const dy = nodePos.y - selectedPos.y;
-
-      let angle = Math.atan2(dy, dx);
-
-      let degrees = (angle * 180) / Math.PI;
-
-      degrees = (degrees + 90 + 360) % 360;
-
-      return { nodeId, angle: degrees };
-    });
-
-    nodesWithAngles.sort((a, b) => a.angle - b.angle);
-
-    return nodesWithAngles.map((item) => item.nodeId);
+    return sortNodesByAngle(Array.from(connectedNodeIds), positions, selectedPos);
   }, [networkInstance]);
 
   /**
@@ -165,7 +145,6 @@ export const useConnectedNavigation = () => {
     const sortedNodes = getConnectedNodesSorted();
 
     if (sortedNodes.length === 0) {
-      console.log('[ConnectedNav] No connected nodes to navigate');
       return;
     }
 
@@ -178,7 +157,6 @@ export const useConnectedNavigation = () => {
 
     const node = graphData?.nodes.find((n) => n.id === nextNodeId);
     if (node) {
-      console.log('[ConnectedNav] Navigate next:', node.label);
       focusNode(nextNodeId);
 
       if (cameraService) {
