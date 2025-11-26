@@ -179,7 +179,7 @@ interface ColoringState {
  */
 export const useColoringStore = create<ColoringState>()(
   devtools(
-    immer((set) => ({
+    immer(set => ({
       selectedNodeId: null,
       focusedNodeId: null,
       highlightedNodes: new Set(),
@@ -188,14 +188,14 @@ export const useColoringStore = create<ColoringState>()(
       activeNodeIds: null,
 
       selectNode: (nodeId, graphData) =>
-        set((state) => {
+        set(state => {
           state.selectedNodeId = nodeId;
 
           if (nodeId && graphData) {
             const incoming = new Set<string>();
             const outgoing = new Set<string>();
 
-            graphData.edges.forEach((edge) => {
+            graphData.edges.forEach(edge => {
               if (edge.from === nodeId) {
                 outgoing.add(edge.to);
               }
@@ -224,20 +224,20 @@ export const useColoringStore = create<ColoringState>()(
           }
         }),
 
-      focusNode: (nodeId) =>
-        set((state) => {
+      focusNode: nodeId =>
+        set(state => {
           state.focusedNodeId = nodeId;
         }),
 
       highlightConnectedNodes: (nodeId, graphData) =>
-        set((state) => {
+        set(state => {
           if (!graphData) {
             state.highlightedNodes = new Set([nodeId]);
             return;
           }
 
           const connected = new Set<string>();
-          graphData.edges.forEach((edge) => {
+          graphData.edges.forEach(edge => {
             if (edge.from === nodeId) connected.add(edge.to);
             if (edge.to === nodeId) connected.add(edge.from);
           });
@@ -246,12 +246,12 @@ export const useColoringStore = create<ColoringState>()(
         }),
 
       clearHighlight: () =>
-        set((state) => {
+        set(state => {
           state.highlightedNodes.clear();
         }),
 
-      setActiveNodes: (nodeIds) =>
-        set((state) => {
+      setActiveNodes: nodeIds =>
+        set(state => {
           if (nodeIds === null) {
             state.activeNodeIds = null;
           } else {
@@ -260,7 +260,7 @@ export const useColoringStore = create<ColoringState>()(
         }),
 
       clearSelection: () =>
-        set((state) => {
+        set(state => {
           state.selectedNodeId = null;
           state.focusedNodeId = null;
           state.highlightedNodes.clear();
@@ -268,6 +268,6 @@ export const useColoringStore = create<ColoringState>()(
           state.outgoingNodeIds.clear();
         }),
     })),
-    { name: 'ColoringStore' },
-  ),
+    { name: 'ColoringStore' }
+  )
 );

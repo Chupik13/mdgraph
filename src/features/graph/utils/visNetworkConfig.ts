@@ -109,19 +109,19 @@ export const getVisNetworkOptions = (): Options => ({
     },
   },
 
-    physics: {
-        enabled: true,
-        solver: 'forceAtlas2Based',
-        forceAtlas2Based: {
-            theta: 0.5,
-            gravitationalConstant: -450,
-            centralGravity: 0.01,
-            springConstant: 0.08,
-            springLength: 200,
-            damping: 0.4,
-            avoidOverlap: 0
-        },
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      theta: 0.5,
+      gravitationalConstant: -450,
+      centralGravity: 0.01,
+      springConstant: 0.08,
+      springLength: 200,
+      damping: 0.4,
+      avoidOverlap: 0,
     },
+  },
 
   interaction: {
     hover: false,

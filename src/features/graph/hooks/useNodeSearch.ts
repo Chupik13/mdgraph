@@ -4,6 +4,7 @@ import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
 import { CameraService, FAST_ANIMATION } from '../../camera';
+import type { Node } from '../../../shared/types';
 
 /**
  * Hook for incremental node search by label with automatic viewport adjustment.
@@ -44,7 +45,7 @@ export const useNodeSearch = () => {
       return;
     }
 
-    if (!graphData) {
+    if (!networkInstance) {
       return;
     }
 
@@ -54,10 +55,15 @@ export const useNodeSearch = () => {
       return;
     }
 
+    // Use vis-network DataSet as source of truth (includes delta-synced nodes)
+    // @ts-expect-error - accessing internal vis-network structure
+    const nodesDataSet = networkInstance.body.data.nodes;
+    const allNodes = nodesDataSet.get() as Node[];
+
     const query = input.toLowerCase();
-    const matchedNodeIds = graphData.nodes
-      .filter((node) => node.label.toLowerCase().includes(query))
-      .map((node) => node.id);
+    const matchedNodeIds = allNodes
+      .filter((node: Node) => node.label.toLowerCase().includes(query))
+      .map((node: Node) => node.id);
 
     setActiveNodes(matchedNodeIds);
 

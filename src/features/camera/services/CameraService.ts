@@ -117,7 +117,7 @@ export class CameraService {
   focusOnNode(
     nodeId: string,
     scale: number = 1.3,
-    animation: CameraAnimationOptions = DEFAULT_ANIMATION,
+    animation: CameraAnimationOptions = DEFAULT_ANIMATION
   ): void {
     this.network.focus(nodeId, {
       scale,
@@ -270,7 +270,7 @@ export class CameraService {
     x: number,
     y: number,
     scale?: number,
-    animation: CameraAnimationOptions = DEFAULT_ANIMATION,
+    animation: CameraAnimationOptions = DEFAULT_ANIMATION
   ): void {
     this.network.moveTo({
       position: { x, y },

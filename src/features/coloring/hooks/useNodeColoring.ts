@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import type { Network } from 'vis-network';
-import { useGraphStore } from '../../graph/store/graphStore';
+import type { DataSet } from 'vis-data';
 import { useColoringStore } from '../store/coloringStore';
 import type { NodeType } from '../utils/nodeColors';
 import { getNodeStyle, getInactiveNodeStyle } from '../utils/nodeColors';
+import type { Node } from '../../../shared/types';
 
 /**
  * Hook for applying visual styles to graph nodes based on selection and search state.
@@ -34,32 +35,35 @@ import { getNodeStyle, getInactiveNodeStyle } from '../utils/nodeColors';
  * useNodeColoring(network);
  */
 export const useNodeColoring = (network: Network | null) => {
-  const graphData = useGraphStore((state) => state.graphData);
-  const selectedNodeId = useColoringStore((state) => state.selectedNodeId);
-  const focusedNodeId = useColoringStore((state) => state.focusedNodeId);
-  const incomingNodeIds = useColoringStore((state) => state.incomingNodeIds);
-  const outgoingNodeIds = useColoringStore((state) => state.outgoingNodeIds);
-  const activeNodeIds = useColoringStore((state) => state.activeNodeIds);
+  const selectedNodeId = useColoringStore(state => state.selectedNodeId);
+  const focusedNodeId = useColoringStore(state => state.focusedNodeId);
+  const incomingNodeIds = useColoringStore(state => state.incomingNodeIds);
+  const outgoingNodeIds = useColoringStore(state => state.outgoingNodeIds);
+  const activeNodeIds = useColoringStore(state => state.activeNodeIds);
 
   useEffect(() => {
-    if (!network || !graphData) return;
+    if (!network) return;
 
-    // @ts-expect-error - vis-network body property is not in type definitions
-    const nodes = network.body.data.nodes;
+    // Type-safe access to internal vis-network structure
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const networkBody = (network as any).body;
+    if (!networkBody?.data?.nodes) {
+      console.warn('useNodeColoring: vis-network body structure not available');
+      return;
+    }
+
+    const nodesDataSet = networkBody.data.nodes as DataSet<Node>;
+    const allNodeIds = nodesDataSet.getIds() as string[];
 
     const getNodeType = (nodeId: string): NodeType => {
-      switch (true) {
-        case nodeId === selectedNodeId:
-          return 'selected';
-        case outgoingNodeIds.has(nodeId):
-          return 'outgoing';
-        case incomingNodeIds.has(nodeId):
-          return 'incoming';
-        case graphData.nodes.find((n) => n.id === nodeId)?.group === 'phantom':
-          return 'phantom';
-        default:
-          return 'regular';
-      }
+      const node = nodesDataSet.get(nodeId);
+
+      // Priority order matters: selected > outgoing/incoming > phantom > regular
+      if (nodeId === selectedNodeId) return 'selected';
+      if (outgoingNodeIds.has(nodeId)) return 'outgoing';
+      if (incomingNodeIds.has(nodeId)) return 'incoming';
+      if (node?.group === 'phantom') return 'phantom';
+      return 'regular';
     };
 
     /**
@@ -88,29 +92,15 @@ export const useNodeColoring = (network: Network | null) => {
       const isInactive = effectiveActiveNodes !== null && !effectiveActiveNodes.has(node.id);
 
       if (isInactive) {
-        return {
-          id: node.id,
-          ...getInactiveNodeStyle(),
-        };
+        return { id: nodeId, ...getInactiveNodeStyle() };
       }
 
-      const type = getNodeType(node.id);
-      const isFocused = node.id === focusedNodeId;
+      const type = getNodeType(nodeId);
+      const isFocused = nodeId === focusedNodeId;
 
-      return {
-        id: node.id,
-        ...getNodeStyle(type, isFocused),
-      };
+      return { id: nodeId, ...getNodeStyle(type, isFocused) };
     });
 
-    nodes.update(updates);
-  }, [
-    network,
-    graphData,
-    selectedNodeId,
-    focusedNodeId,
-    incomingNodeIds,
-    outgoingNodeIds,
-    activeNodeIds,
-  ]);
+    nodesDataSet.update(updates);
+  }, [network, selectedNodeId, focusedNodeId, incomingNodeIds, outgoingNodeIds, activeNodeIds]);
 };

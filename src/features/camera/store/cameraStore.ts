@@ -98,13 +98,13 @@ interface CameraState {
  *   console.log('Camera is currently animating');
  * }
  */
-export const useCameraStore = create<CameraState>((set) => ({
+export const useCameraStore = create<CameraState>(set => ({
   scale: 1.0,
   position: { x: 0, y: 0 },
   isAnimating: false,
 
-  setScale: (scale) => set({ scale }),
-  setPosition: (position) => set({ position }),
-  setIsAnimating: (isAnimating) => set({ isAnimating }),
+  setScale: scale => set({ scale }),
+  setPosition: position => set({ position }),
+  setIsAnimating: isAnimating => set({ isAnimating }),
   updateCamera: (scale, position) => set({ scale, position }),
 }));

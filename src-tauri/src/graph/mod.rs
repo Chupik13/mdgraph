@@ -55,6 +55,31 @@ pub struct Node {
     pub hashtags: Vec<String>,
 }
 
+impl Node {
+    /// Creates a phantom node for a referenced but non-existent file.
+    ///
+    /// Phantom nodes represent broken wiki-links to files that don't exist yet.
+    /// They are visually distinguished in the graph to indicate missing notes.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Node identifier (the wiki-link target)
+    ///
+    /// # Returns
+    ///
+    /// A new `Node` with group set to "phantom" and empty file path.
+    pub fn phantom(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            label: id.to_string(),
+            value: 0,
+            group: Some("phantom".to_string()),
+            file_path: String::new(),
+            hashtags: Vec::new(),
+        }
+    }
+}
+
 /// Represents a directed edge between two nodes in the graph.
 ///
 /// Edges are created from wiki-link references, pointing from the file containing

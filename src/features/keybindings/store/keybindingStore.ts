@@ -177,12 +177,12 @@ export const useKeybindingStore = create<KeybindingState>()(
         keybindings: defaultKeybindings,
         isEnabled: true,
 
-        findAction: (event) => {
+        findAction: event => {
           const { keybindings, isEnabled } = get();
 
           if (!isEnabled) return null;
 
-          const binding = keybindings.find((kb) => {
+          const binding = keybindings.find(kb => {
             const keyMatch = kb.key === event.key;
             const ctrlMatch = (kb.modifiers?.ctrl ?? false) === event.ctrlKey;
             const shiftMatch = (kb.modifiers?.shift ?? false) === event.shiftKey;
@@ -195,9 +195,9 @@ export const useKeybindingStore = create<KeybindingState>()(
       }),
       {
         name: 'keybindings-storage',
-        partialize: (state) => ({ keybindings: state.keybindings }),
-      },
+        partialize: state => ({ keybindings: state.keybindings }),
+      }
     ),
-    { name: 'KeybindingStore' },
-  ),
+    { name: 'KeybindingStore' }
+  )
 );

@@ -10,9 +10,9 @@ import { useCamera } from '../../camera';
  * - All outgoing nodes
  */
 export const useNodeSelection = () => {
-  const selectedNodeId = useColoringStore((state) => state.selectedNodeId);
-  const incomingNodeIds = useColoringStore((state) => state.incomingNodeIds);
-  const outgoingNodeIds = useColoringStore((state) => state.outgoingNodeIds);
+  const selectedNodeId = useColoringStore(state => state.selectedNodeId);
+  const incomingNodeIds = useColoringStore(state => state.incomingNodeIds);
+  const outgoingNodeIds = useColoringStore(state => state.outgoingNodeIds);
   const { cameraService } = useCamera();
 
   useEffect(() => {

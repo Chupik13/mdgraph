@@ -13,7 +13,7 @@ interface CommandLineState {
 
 export const useCommandLineStore = create<CommandLineState>()(
   devtools(
-    (set) => ({
+    set => ({
       isOpen: false,
       input: '',
 
@@ -30,8 +30,8 @@ export const useCommandLineStore = create<CommandLineState>()(
         });
       },
 
-      setInput: (input) => {
-          set({ input })
+      setInput: input => {
+        set({ input });
       },
 
       reset: () =>
@@ -40,6 +40,6 @@ export const useCommandLineStore = create<CommandLineState>()(
           input: '',
         }),
     }),
-    { name: 'CommandLineStore' },
-  ),
+    { name: 'CommandLineStore' }
+  )
 );

@@ -57,8 +57,8 @@ import { sortNodesByAngle } from '../utils';
  * // Press 'b' -> navigatePrevConnected()  (counterclockwise)
  */
 export const useConnectedNavigation = () => {
-  const networkInstance = useGraphStore((state) => state.networkInstance);
-  const focusNode = useColoringStore((state) => state.focusNode);
+  const networkInstance = useGraphStore(state => state.networkInstance);
+  const focusNode = useColoringStore(state => state.focusNode);
 
   const cameraService = useMemo(() => {
     return networkInstance ? new CameraService(networkInstance) : null;
@@ -92,8 +92,7 @@ export const useConnectedNavigation = () => {
    * - Nodes without position data are assigned angle 0 (treated as north)
    */
   const getConnectedNodesSorted = useCallback((): string[] => {
-    const { selectedNodeId, incomingNodeIds, outgoingNodeIds } =
-      useColoringStore.getState();
+    const { selectedNodeId, incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();
     const { graphData } = useGraphStore.getState();
 
     if (!selectedNodeId || !networkInstance || !graphData) {
@@ -155,7 +154,7 @@ export const useConnectedNavigation = () => {
 
     if (!nextNodeId) return;
 
-    const node = graphData?.nodes.find((n) => n.id === nextNodeId);
+    const node = graphData?.nodes.find(n => n.id === nextNodeId);
     if (node) {
       focusNode(nextNodeId);
 
@@ -202,7 +201,7 @@ export const useConnectedNavigation = () => {
 
     if (!prevNodeId) return;
 
-    const node = graphData?.nodes.find((n) => n.id === prevNodeId);
+    const node = graphData?.nodes.find(n => n.id === prevNodeId);
     if (node) {
       focusNode(prevNodeId);
 

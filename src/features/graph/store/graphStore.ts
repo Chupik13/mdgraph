@@ -13,7 +13,8 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
 import type { Network } from 'vis-network';
-import type { GraphData, Node, GraphFilters } from '../../../shared/types';
+import type { DataSet } from 'vis-data';
+import type { GraphData, Node, Edge, GraphFilters } from '../../../shared/types';
 
 enableMapSet();
 
@@ -138,6 +139,62 @@ interface GraphState {
    * @returns Node object if found, undefined otherwise
    */
   getNode: (nodeId: string) => Node | undefined;
+
+  /**
+   * Adds a new node to the graph data.
+   *
+   * Used for incremental updates from the file watcher.
+   *
+   * @param node - Node to add
+   */
+  addNode: (node: Node) => void;
+
+  /**
+   * Removes a node and its connected edges from the graph data.
+   *
+   * @param nodeId - ID of the node to remove
+   */
+  removeNode: (nodeId: string) => void;
+
+  /**
+   * Updates an existing node in the graph data.
+   *
+   * @param node - Node with updated properties
+   */
+  updateNode: (node: Node) => void;
+
+  /**
+   * Adds a new edge to the graph data.
+   *
+   * @param edge - Edge to add
+   */
+  addEdge: (edge: Edge) => void;
+
+  /**
+   * Removes an edge from the graph data.
+   *
+   * @param edge - Edge to remove (matched by from/to)
+   */
+  removeEdge: (edge: Edge) => void;
+
+  /**
+   * Gets nodes from vis-network DataSet (runtime state).
+   *
+   * This is the source of truth for current graph nodes after delta updates.
+   * Use this instead of graphData.nodes for navigation and other runtime operations.
+   *
+   * @returns Array of nodes from DataSet, or empty array if network not initialized
+   */
+  getNodesFromDataSet: () => Node[];
+
+  /**
+   * Gets edges from vis-network DataSet (runtime state).
+   *
+   * This is the source of truth for current graph edges after delta updates.
+   *
+   * @returns Array of edges from DataSet, or empty array if network not initialized
+   */
+  getEdgesFromDataSet: () => Edge[];
 }
 
 /**
@@ -186,41 +243,41 @@ export const useGraphStore = create<GraphState>()(
           nodeGroups: [],
         },
 
-        setGraphData: (data) =>
-          set((state) => {
+        setGraphData: data =>
+          set(state => {
             state.graphData = data;
             state.isLoading = false;
             state.error = null;
           }),
 
-        setLoading: (loading) =>
-          set((state) => {
+        setLoading: loading =>
+          set(state => {
             state.isLoading = loading;
           }),
 
-        setError: (error) =>
-          set((state) => {
+        setError: error =>
+          set(state => {
             state.error = error;
             state.isLoading = false;
           }),
 
-        setNetworkInstance: (network) =>
-          set((state) => {
+        setNetworkInstance: network =>
+          set(state => {
             state.networkInstance = network;
           }),
 
-        updateFilters: (filters) =>
-          set((state) => {
+        updateFilters: filters =>
+          set(state => {
             state.filters = { ...state.filters, ...filters };
           }),
 
-        setSearchFilter: (query) =>
-          set((state) => {
+        setSearchFilter: query =>
+          set(state => {
             state.filters.searchQuery = query;
           }),
 
         resetGraph: () =>
-          set((state) => {
+          set(state => {
             state.graphData = null;
             state.networkInstance = null;
             state.error = null;
@@ -231,7 +288,7 @@ export const useGraphStore = create<GraphState>()(
           if (!graphData) return [];
 
           const connected = new Set<string>();
-          graphData.edges.forEach((edge) => {
+          graphData.edges.forEach(edge => {
             if (edge.from === nodeId) connected.add(edge.to);
             if (edge.to === nodeId) connected.add(edge.from);
           });
@@ -241,10 +298,67 @@ export const useGraphStore = create<GraphState>()(
 
         getNode: (nodeId: string): Node | undefined => {
           const { graphData } = get();
-          return graphData?.nodes.find((n) => n.id === nodeId);
+          return graphData?.nodes.find(n => n.id === nodeId);
         },
-      })),
+
+        addNode: node =>
+          set(state => {
+            if (state.graphData) {
+              state.graphData.nodes.push(node);
+            }
+          }),
+
+        removeNode: nodeId =>
+          set(state => {
+            if (!state.graphData) return;
+            state.graphData.nodes = state.graphData.nodes.filter(n => n.id !== nodeId);
+            // Also remove edges connected to this node
+            state.graphData.edges = state.graphData.edges.filter(
+              e => e.from !== nodeId && e.to !== nodeId
+            );
+          }),
+
+        updateNode: node =>
+          set(state => {
+            if (!state.graphData) return;
+            const idx = state.graphData.nodes.findIndex(n => n.id === node.id);
+            if (idx !== -1) {
+              state.graphData.nodes[idx] = node;
+            }
+          }),
+
+        addEdge: edge =>
+          set(state => {
+            if (state.graphData) {
+              state.graphData.edges.push(edge);
+            }
+          }),
+
+        removeEdge: edge =>
+          set(state => {
+            if (!state.graphData) return;
+            state.graphData.edges = state.graphData.edges.filter(
+              e => !(e.from === edge.from && e.to === edge.to)
+            );
+          }),
+
+        getNodesFromDataSet: (): Node[] => {
+          const { networkInstance } = get();
+          if (!networkInstance) return [];
+          // @ts-expect-error - accessing internal vis-network structure
+          const nodesDataSet = networkInstance.body.data.nodes as DataSet<Node>;
+          return nodesDataSet.get();
+        },
+
+        getEdgesFromDataSet: (): Edge[] => {
+          const { networkInstance } = get();
+          if (!networkInstance) return [];
+          // @ts-expect-error - accessing internal vis-network structure
+          const edgesDataSet = networkInstance.body.data.edges as DataSet<Edge>;
+          return edgesDataSet.get();
+        },
+      }))
     ),
-    { name: 'GraphStore' },
-  ),
+    { name: 'GraphStore' }
+  )
 );

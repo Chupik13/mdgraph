@@ -121,7 +121,7 @@ export const defaultKeybindings: Keybinding[] = [
   },
   {
     key: '/',
-   action: 'app.openSearchMode',
+    action: 'app.openSearchMode',
     description: 'Open search',
   },
   {

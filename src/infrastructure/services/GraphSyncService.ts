@@ -50,14 +50,14 @@ import { TauriEvents } from '../tauri/events';
  * }, []);
  */
 export const useGraphSync = () => {
-  const setGraphData = useGraphStore((state) => state.setGraphData);
+  const setGraphData = useGraphStore(state => state.setGraphData);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
-    TauriEvents.onGraphUpdate((graphData) => {
+    TauriEvents.onGraphUpdate(graphData => {
       setGraphData(graphData);
-    }).then((unlistenFn) => {
+    }).then(unlistenFn => {
       unlisten = unlistenFn;
     });
 
