@@ -87,7 +87,7 @@ export const useSearchNavigation = () => {
 
     const positions = networkInstance.getPositions();
 
-    // Вычисляем центр масс всех найденных нод - фиксированная точка отсчёта
+    // Calculate the centroid of all found nodes - fixed reference point
     let sumX = 0,
       sumY = 0,
       count = 0;
