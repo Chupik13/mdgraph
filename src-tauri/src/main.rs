@@ -1,4 +1,4 @@
-//! Binary entry point for the mdgraph2 Tauri application.
+//! Binary entry point for the mdgraph Tauri application.
 //!
 //! This module serves as the minimal executable wrapper that delegates to the
 //! main library implementation. The windows_subsystem attribute ensures the
@@ -16,5 +16,5 @@
 /// On Windows in release builds (non-debug), this binary runs as a GUI application
 /// without spawning a console window, providing a cleaner user experience.
 fn main() {
-    mdgraph2_lib::run()
+    mdgraph_lib::run()
 }

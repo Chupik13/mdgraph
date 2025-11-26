@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "mdgraph2",
+  "productName": "mdgraph",
   "version": "0.1.0",
-  "identifier": "com.minta.mdgraph2",
+  "identifier": "com.minta.mdgraph",
   "build": {
     "beforeDevCommand": "npm run dev:vite",
     "beforeBuildCommand": "npm run build:vite",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "mdgraph2",
+        "title": "mdgraph",
         "width": 1200,
         "height": 800,
         "decorations": false,
