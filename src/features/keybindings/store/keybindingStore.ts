@@ -11,7 +11,6 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { defaultKeybindings } from '../config/defaultKeybindings';
-import { useAppModeStore } from '../../../shared/store/appModeStore';
 
 /**
  * Union type of all available keybinding actions.
@@ -172,16 +171,16 @@ interface KeybindingState {
 export const useKeybindingStore = create<KeybindingState>()(
   devtools(
     persist(
-      (set, get) => ({
+      (_set, get) => ({
         keybindings: defaultKeybindings,
         isEnabled: true,
 
-        findAction: (event) => {
+        findAction: event => {
           const { keybindings, isEnabled } = get();
 
           if (!isEnabled) return null;
 
-          const binding = keybindings.find((kb) => {
+          const binding = keybindings.find(kb => {
             const keyMatch = kb.key === event.key;
             const ctrlMatch = (kb.modifiers?.ctrl ?? false) === event.ctrlKey;
             const shiftMatch = (kb.modifiers?.shift ?? false) === event.shiftKey;
@@ -194,9 +193,9 @@ export const useKeybindingStore = create<KeybindingState>()(
       }),
       {
         name: 'keybindings-storage',
-        partialize: (state) => ({ keybindings: state.keybindings }),
-      },
+        partialize: state => ({ keybindings: state.keybindings }),
+      }
     ),
-    { name: 'KeybindingStore' },
-  ),
+    { name: 'KeybindingStore' }
+  )
 );

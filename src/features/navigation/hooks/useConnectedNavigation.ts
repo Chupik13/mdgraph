@@ -56,8 +56,8 @@ import { CameraService } from '../../camera';
  * // Press 'b' -> navigatePrevConnected()  (counterclockwise)
  */
 export const useConnectedNavigation = () => {
-  const networkInstance = useGraphStore((state) => state.networkInstance);
-  const focusNode = useColoringStore((state) => state.focusNode);
+  const networkInstance = useGraphStore(state => state.networkInstance);
+  const focusNode = useColoringStore(state => state.focusNode);
 
   const cameraService = useMemo(() => {
     return networkInstance ? new CameraService(networkInstance) : null;
@@ -91,8 +91,7 @@ export const useConnectedNavigation = () => {
    * - Nodes without position data are assigned angle 0 (treated as north)
    */
   const getConnectedNodesSorted = useCallback((): string[] => {
-    const { selectedNodeId, incomingNodeIds, outgoingNodeIds } =
-      useColoringStore.getState();
+    const { selectedNodeId, incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();
     const { graphData } = useGraphStore.getState();
 
     if (!selectedNodeId || !networkInstance || !graphData) {
@@ -112,7 +111,7 @@ export const useConnectedNavigation = () => {
       return [];
     }
 
-    const nodesWithAngles = Array.from(connectedNodeIds).map((nodeId) => {
+    const nodesWithAngles = Array.from(connectedNodeIds).map(nodeId => {
       const nodePos = positions[nodeId];
 
       if (!nodePos) {
@@ -133,7 +132,7 @@ export const useConnectedNavigation = () => {
 
     nodesWithAngles.sort((a, b) => a.angle - b.angle);
 
-    return nodesWithAngles.map((item) => item.nodeId);
+    return nodesWithAngles.map(item => item.nodeId);
   }, [networkInstance]);
 
   /**
@@ -176,7 +175,7 @@ export const useConnectedNavigation = () => {
 
     if (!nextNodeId) return;
 
-    const node = graphData?.nodes.find((n) => n.id === nextNodeId);
+    const node = graphData?.nodes.find(n => n.id === nextNodeId);
     if (node) {
       console.log('[ConnectedNav] Navigate next:', node.label);
       focusNode(nextNodeId);
@@ -224,7 +223,7 @@ export const useConnectedNavigation = () => {
 
     if (!prevNodeId) return;
 
-    const node = graphData?.nodes.find((n) => n.id === prevNodeId);
+    const node = graphData?.nodes.find(n => n.id === prevNodeId);
     if (node) {
       focusNode(prevNodeId);
 

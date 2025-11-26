@@ -7,9 +7,9 @@ import { TauriCommands } from '../infrastructure/tauri/commands';
 import { useGraphStore } from '../features/graph/store/graphStore';
 
 export const App: React.FC = () => {
-  const setGraphData = useGraphStore((state) => state.setGraphData);
-  const setLoading = useGraphStore((state) => state.setLoading);
-  const setError = useGraphStore((state) => state.setError);
+  const setGraphData = useGraphStore(state => state.setGraphData);
+  const setLoading = useGraphStore(state => state.setLoading);
+  const setError = useGraphStore(state => state.setError);
 
   useKeybindings();
   useGraphSync();
@@ -39,7 +39,6 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900/50">
-
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 relative">
           <GraphCanvas />

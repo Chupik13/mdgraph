@@ -82,7 +82,7 @@ declare global {
        */
       invoke<T extends TauriCommand>(
         cmd: T,
-        args: TauriInvokeArgs[T],
+        args: TauriInvokeArgs[T]
       ): Promise<TauriInvokeReturns[T]>;
     };
   }
