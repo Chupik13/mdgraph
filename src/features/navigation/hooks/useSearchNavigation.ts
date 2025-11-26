@@ -3,7 +3,7 @@
  *
  * This hook provides navigation through search results in clockwise order,
  * similar to vim's n/N for search result navigation. Nodes are sorted by
- * their angular position relative to the viewport center.
+ * their angular position relative to the search results centroid.
  *
  * @module features/navigation/hooks/useSearchNavigation
  */
@@ -18,8 +18,8 @@ import { sortNodesByAngle } from '../utils';
  * Hook for navigating through search results in clockwise/counterclockwise order.
  *
  * When search is active (activeNodeIds is set), this hook allows cycling through
- * all matching nodes sorted by their angular position relative to the viewport
- * center, starting from 12 o'clock (north) and proceeding clockwise.
+ * all matching nodes sorted by their angular position relative to the
+ * search results centroid, starting from 12 o'clock (north) and proceeding clockwise.
  *
  * @returns Object with next/previous navigation functions
  *
@@ -31,8 +31,8 @@ import { sortNodesByAngle } from '../utils';
  * - 180° = 6 o'clock (south/down)
  * - 270° = 9 o'clock (west/left)
  *
- * The center point for angle calculation is the current viewport center,
- * making navigation contextual to what the user is currently viewing.
+ * The center point for angle calculation is the centroid of all search result nodes,
+ * providing a stable reference point for consistent navigation order.
  *
  * ## Navigation Behavior
  * - **Next (n key)**: Moves to the next search result clockwise
@@ -60,18 +60,18 @@ export const useSearchNavigation = () => {
   }, [networkInstance]);
 
   /**
-   * Gets all search result nodes sorted clockwise by angle from viewport center.
+   * Gets all search result nodes sorted clockwise by angle from their centroid.
    *
    * Retrieves the list of active (matching) nodes from the search, calculates
-   * their angular positions relative to the viewport center, and sorts them
+   * their angular positions relative to the centroid of all result nodes, and sorts them
    * clockwise starting from 12 o'clock.
    *
    * @returns Array of node IDs sorted by clockwise angle, or empty array if no search results
    *
    * @remarks
    * ## Angle Calculation
-   * 1. Get current viewport center position
-   * 2. Calculate dx and dy from viewport center to each node
+   * 1. Calculate the centroid of all search result nodes
+   * 2. Calculate dx and dy from centroid to each node
    * 3. Use atan2(dy, dx) to get angle in radians
    * 4. Convert to degrees
    * 5. Rotate by +90° and normalize to 0-360° range (makes 0° point up)
