@@ -1,4 +1,4 @@
-/**
+/*
  * Core domain types for the mdgraph2 application.
  *
  * This module defines the fundamental data structures used throughout the application,
@@ -73,6 +73,18 @@ export interface GraphData {
 }
 
 /**
+ * Previewer-specific configuration.
+ *
+ * Contains settings related to the markdown preview feature.
+ *
+ * @property offset - Number of lines to skip from the beginning of the file when displaying preview.
+ *                    Useful for skipping frontmatter or headers. Default is 0.
+ */
+export interface PreviewerConfig {
+  offset: number;
+}
+
+/**
  * Application configuration structure.
  *
  * Contains configurable parameters loaded from the backend. This structure mirrors
@@ -80,9 +92,11 @@ export interface GraphData {
  *
  * @property root_dir - Path to the root directory containing markdown files to scan,
  *                      or null if not configured
+ * @property previewer - Configuration for the markdown preview feature
  */
 export interface AppConfig {
   root_dir: string | null;
+  previewer: PreviewerConfig;
 }
 
 /**

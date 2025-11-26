@@ -11,7 +11,6 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { defaultKeybindings } from '../config/defaultKeybindings';
-import { useAppModeStore } from '../../../shared/store/appModeStore';
 
 /**
  * Union type of all available keybinding actions.
@@ -39,6 +38,7 @@ export type KeybindingAction =
   | 'graph.focusNode'
   | 'graph.deleteNode'
   | 'graph.openNode'
+  | 'graph.previewNode'
   | 'graph.renameNode'
   | 'viewport.zoomIn'
   | 'viewport.zoomOut'
@@ -172,7 +172,7 @@ interface KeybindingState {
 export const useKeybindingStore = create<KeybindingState>()(
   devtools(
     persist(
-      (set, get) => ({
+      (_set, get) => ({
         keybindings: defaultKeybindings,
         isEnabled: true,
 

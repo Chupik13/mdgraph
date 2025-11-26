@@ -24,6 +24,20 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+/// Previewer-specific configuration.
+///
+/// Contains settings related to the markdown preview feature.
+///
+/// # Fields
+///
+/// * `offset` - Number of lines to skip from the beginning of the file when displaying preview.
+///   Useful for skipping frontmatter or headers. Default is 0.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PreviewerConfig {
+    #[serde(default)]
+    pub offset: usize,
+}
+
 /// Application configuration structure.
 ///
 /// Contains all configurable parameters for the mdgraph2 application. This structure
@@ -35,14 +49,17 @@ use std::sync::{Arc, Mutex};
 ///   If None, the application may prompt the user or use a default location.
 /// * `template_phantom_node` - Optional path to the template file used for creating phantom nodes.
 ///   When a phantom node is converted to a real file, this template is used as the base content.
+/// * `previewer` - Configuration for the markdown preview feature.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub root_dir: Option<String>,
     pub template_phantom_node: Option<String>,
+    #[serde(default)]
+    pub previewer: PreviewerConfig,
 }
 
 impl Default for AppConfig {
-    /// Creates a default configuration with all fields set to None.
+    /// Creates a default configuration with all fields set to None/default.
     ///
     /// This serves as the fallback when no configuration file is found and no
     /// CLI arguments are provided.
@@ -50,6 +67,7 @@ impl Default for AppConfig {
         Self {
             root_dir: None,
             template_phantom_node: None,
+            previewer: PreviewerConfig::default(),
         }
     }
 }
@@ -190,6 +208,7 @@ impl AppConfig {
         Self {
             root_dir: args.root_dir.clone(),
             template_phantom_node: args.template_phantom_node.clone(),
+            previewer: PreviewerConfig::default(),
         }
     }
 
@@ -214,6 +233,7 @@ impl AppConfig {
         Self {
             root_dir: override_config.root_dir.or(base.root_dir),
             template_phantom_node: override_config.template_phantom_node.or(base.template_phantom_node),
+            previewer: base.previewer, // Previewer config comes from file only
         }
     }
 }
@@ -274,6 +294,7 @@ pub fn load_config() -> Result<AppConfig, String> {
     println!("[Config] Final configuration:");
     println!("  root_dir: {:?}", final_config.root_dir);
     println!("  template_phantom_node: {:?}", final_config.template_phantom_node);
+    println!("  previewer.offset: {:?}", final_config.previewer.offset);
 
     Ok(final_config)
 }

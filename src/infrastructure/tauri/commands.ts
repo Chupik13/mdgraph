@@ -123,4 +123,23 @@ export const TauriCommands = {
   async openFile(nodeId: string): Promise<void> {
     return await invoke<void>('open_file', { nodeId });
   },
+
+  /**
+   * Reads the markdown content of a note by node ID.
+   *
+   * Invokes the backend `read_note` command which reads the file content
+   * for displaying in the preview popup.
+   *
+   * @param nodeId - The ID/name of the node (without .md extension)
+   * @returns Promise resolving to the markdown content string
+   *
+   * @throws Error if root_dir is not configured, file doesn't exist (phantom node),
+   *         or reading fails
+   *
+   * @example
+   * const content = await TauriCommands.readNote('JavaScript');
+   */
+  async readNote(nodeId: string): Promise<string> {
+    return await invoke<string>('read_note', { nodeId });
+  },
 };

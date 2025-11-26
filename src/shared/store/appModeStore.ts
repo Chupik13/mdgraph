@@ -101,7 +101,7 @@ export const useAppModeStore = create<AppModeState>()(
         const { currentMode } = get();
 
         if (currentMode === mode) {
-            return;
+          return;
         }
 
         set({

@@ -103,6 +103,11 @@ export const defaultKeybindings: Keybinding[] = [
     description: 'Open node in editor',
   },
   {
+    key: 'p',
+    action: 'graph.previewNode',
+    description: 'Preview node content',
+  },
+  {
     key: ':',
     modifiers: { shift: true },
     action: 'app.openCommandMode',

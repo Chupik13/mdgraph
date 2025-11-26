@@ -24,7 +24,7 @@ mod helpers;
 mod templates;
 
 use commands::{
-    create_phantom_node, get_config, open_file, scan_folder,
+    create_phantom_node, get_config, open_file, read_note, scan_folder,
 };
 use config::{load_config, AppState};
 use tauri::Manager;
@@ -104,7 +104,8 @@ pub fn run() {
             scan_folder,
             get_config,
             open_file,
-            create_phantom_node
+            create_phantom_node,
+            read_note
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

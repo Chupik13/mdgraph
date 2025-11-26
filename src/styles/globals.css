@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Custom base styles */
 body {
@@ -36,6 +37,16 @@ body {
 
 *::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+}
+
+/* Hidden scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Button base styles */

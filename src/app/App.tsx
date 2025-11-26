@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { GraphCanvas } from '../features/graph/components/GraphCanvas';
 import { CommandLine } from '../features/command-line/components/CommandLine';
+import { PreviewPopup } from '../features/preview';
 import { useKeybindings } from '../features/keybindings/hooks/useKeybindings';
 import { useGraphSync } from '../infrastructure/services/GraphSyncService';
 import { TauriCommands } from '../infrastructure/tauri/commands';
@@ -47,6 +48,7 @@ export const App: React.FC = () => {
       </div>
 
       <CommandLine />
+      <PreviewPopup />
     </div>
   );
 };

@@ -1,24 +1,58 @@
+/**
+ * Graph canvas component for vis-network visualization.
+ *
+ * This module provides the main canvas container for rendering the knowledge graph
+ * using vis-network. It integrates multiple features including node coloring,
+ * search highlighting, selection handling, and preview blur effects.
+ *
+ * @module features/graph/components/GraphCanvas
+ */
+
 import React, { useRef } from 'react';
 import { useGraphStore } from '../store/graphStore';
 import { useGraphNetwork } from '../hooks/useGraphNetwork';
 import { useNodeSearch } from '../hooks/useNodeSearch';
 import { useNodeSelection } from '../hooks/useNodeSelection';
 import { useNodeColoring } from '../../coloring';
+import { usePreviewStore } from '../../preview/store/previewStore';
 
+/**
+ * Main graph visualization canvas component.
+ *
+ * Renders the vis-network graph inside a container div and coordinates
+ * multiple visualization features through hooks. Applies a subtle blur
+ * effect when the preview popup is open to focus attention on the preview.
+ *
+ * @returns Graph canvas container with vis-network visualization
+ *
+ * @remarks
+ * ## Integrated Features
+ * - **Node coloring**: Dynamic color updates based on selection state
+ * - **Search**: Highlights matching nodes during search mode
+ * - **Selection**: Tracks focused and selected nodes
+ * - **Preview blur**: Applies 2px blur when preview popup is open
+ *
+ * ## Error States
+ * Displays appropriate UI for loading errors and empty graph states.
+ *
+ * @example
+ * <GraphCanvas />
+ */
 export const GraphCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphData = useGraphStore((state) => state.graphData);
   const isLoading = useGraphStore((state) => state.isLoading);
   const error = useGraphStore((state) => state.error);
+  const isPreviewOpen = usePreviewStore((state) => state.isOpen);
 
-  const { network, isReady } = useGraphNetwork(containerRef, graphData);
+  const { network } = useGraphNetwork(containerRef, graphData);
 
   useNodeColoring(network);
   useNodeSearch();
   useNodeSelection();
 
   return (
-    <div className="relative w-full h-full bg-transparent">
+    <div className={`relative w-full h-full bg-transparent transition-[filter] duration-200 ${isPreviewOpen ? 'blur-[2px]' : ''}`}>
       {/* vis-network */}
       <div ref={containerRef} className="w-full h-full" data-testid="graph-canvas" />
 
