@@ -22,11 +22,15 @@ mod commands;
 mod config;
 mod helpers;
 mod templates;
+mod watcher;
 
 use commands::{
     create_phantom_node, get_config, open_file, scan_folder,
 };
 use config::{load_config, AppState};
+use graph::build_graph;
+use scanner::scan_directory;
+use watcher::GraphCache;
 use tauri::Manager;
 
 /// Initializes and runs the Tauri application.
@@ -96,7 +100,32 @@ pub fn run() {
                 config::AppConfig::default()
             });
 
-            app.manage(AppState::new(config));
+            // Build initial graph cache if root_dir is configured
+            let app_state = if let Some(ref root_dir) = config.root_dir {
+                match scan_directory(root_dir) {
+                    Ok(files) => {
+                        let graph = build_graph(files.clone());
+                        let cache = GraphCache::from_graph_data(&graph, &files);
+                        println!("[Init] Built graph cache with {} files", files.len());
+                        AppState::with_cache(config.clone(), cache)
+                    }
+                    Err(e) => {
+                        eprintln!("[Error] Failed to scan directory for cache: {}", e);
+                        AppState::new(config.clone())
+                    }
+                }
+            } else {
+                AppState::new(config.clone())
+            };
+
+            app.manage(app_state);
+
+            // Start file watcher if root_dir is configured
+            if let Some(ref root_dir) = config.root_dir {
+                if let Err(e) = watcher::start_watching(app.handle().clone(), root_dir) {
+                    eprintln!("[Error] Failed to start file watcher: {}", e);
+                }
+            }
 
             Ok(())
         })

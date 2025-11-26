@@ -97,11 +97,11 @@ export const useAppModeStore = create<AppModeState>()(
     (set, get) => ({
       currentMode: 'normal',
 
-      setMode: (mode) => {
+      setMode: mode => {
         const { currentMode } = get();
 
         if (currentMode === mode) {
-            return;
+          return;
         }
 
         set({
@@ -110,6 +110,6 @@ export const useAppModeStore = create<AppModeState>()(
       },
     }),
 
-    { name: 'AppModeStore' },
-  ),
+    { name: 'AppModeStore' }
+  )
 );

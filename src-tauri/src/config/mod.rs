@@ -24,6 +24,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use crate::watcher::GraphCache;
+
 /// Application configuration structure.
 ///
 /// Contains all configurable parameters for the mdgraph2 application. This structure
@@ -76,24 +78,25 @@ pub struct CliArgs {
 
 /// Thread-safe application state container.
 ///
-/// Manages application configuration with thread-safe access patterns using
-/// `Arc<Mutex<>>`. This allows multiple Tauri command handlers to safely read
-/// and update configuration concurrently.
+/// Manages application configuration and graph cache with thread-safe access patterns
+/// using `Arc<Mutex<>>`. This allows multiple Tauri command handlers to safely read
+/// and update state concurrently.
 ///
 /// # Thread Safety
 ///
-/// The configuration is protected by a mutex, ensuring exclusive access during
-/// reads and writes. The `Arc` wrapper allows the state to be shared across
-/// threads without copying the entire configuration.
+/// Both the configuration and graph cache are protected by mutexes, ensuring exclusive
+/// access during reads and writes. The `Arc` wrapper allows the state to be shared
+/// across threads without copying the entire state.
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub config: Arc<Mutex<AppConfig>>,
+    pub graph_cache: Arc<Mutex<GraphCache>>,
 }
 
 impl AppState {
-    /// Creates a new AppState with the provided configuration.
+    /// Creates a new AppState with the provided configuration and an empty graph cache.
     ///
-    /// Wraps the configuration in `Arc<Mutex<>>` for thread-safe access.
+    /// Wraps the configuration and cache in `Arc<Mutex<>>` for thread-safe access.
     ///
     /// # Arguments
     ///
@@ -105,6 +108,24 @@ impl AppState {
     pub fn new(config: AppConfig) -> Self {
         Self {
             config: Arc::new(Mutex::new(config)),
+            graph_cache: Arc::new(Mutex::new(GraphCache::new())),
+        }
+    }
+
+    /// Creates a new AppState with the provided configuration and graph cache.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The initial application configuration
+    /// * `cache` - Pre-populated graph cache
+    ///
+    /// # Returns
+    ///
+    /// A new `AppState` instance with the provided cache.
+    pub fn with_cache(config: AppConfig, cache: GraphCache) -> Self {
+        Self {
+            config: Arc::new(Mutex::new(config)),
+            graph_cache: Arc::new(Mutex::new(cache)),
         }
     }
 
