@@ -25,6 +25,7 @@ export interface TauriInvokeArgs {
   scan_folder: { path: string };
   get_config: void;
   open_file: { filePath: string };
+  read_note: { nodeId: string };
 }
 
 /**
@@ -41,6 +42,7 @@ export interface TauriInvokeReturns {
   scan_folder: GraphData;
   get_config: AppConfig;
   open_file: void;
+  read_note: string;
 }
 
 /**

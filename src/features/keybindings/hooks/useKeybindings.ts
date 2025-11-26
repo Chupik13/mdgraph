@@ -18,6 +18,7 @@ import { useAppModeStore } from '../../../shared/store/appModeStore';
 import { useVimNavigation, useConnectedNavigation, useSearchNavigation } from '../../navigation';
 import { CameraService } from '../../camera';
 import { TauriCommands } from '../../../infrastructure/tauri/commands';
+import { usePreviewStore } from '../../preview';
 import type { KeybindingAction } from '../store/keybindingStore';
 
 /**
@@ -90,6 +91,10 @@ export const useKeybindings = () => {
   const focusNode = useColoringStore(state => state.focusNode);
 
   const openCommandLine = useCommandLineStore(state => state.open);
+
+  const openPreview = usePreviewStore((state) => state.open);
+  const setPreviewLoading = usePreviewStore((state) => state.setLoading);
+  const setPreviewError = usePreviewStore((state) => state.setError);
 
   /**
    * Executes an action based on its type.
@@ -165,6 +170,50 @@ export const useKeybindings = () => {
           break;
         }
 
+        case 'graph.previewNode': {
+          const { focusedNodeId } = useColoringStore.getState();
+          const { graphData, networkInstance } = useGraphStore.getState();
+
+          if (focusedNodeId && graphData && networkInstance) {
+            const node = graphData.nodes.find((n) => n.id === focusedNodeId);
+            // Ignore phantom nodes
+            if (node && node.group !== 'phantom') {
+              try {
+                setPreviewLoading(true);
+
+                // Get node position in canvas coordinates
+                const positions = networkInstance.getPositions([focusedNodeId]);
+                const canvasPos = positions[focusedNodeId];
+
+                if (!canvasPos) {
+                  throw new Error('Failed to get node position');
+                }
+
+                // Convert to DOM coordinates
+                const domPos = networkInstance.canvasToDOM({
+                  x: canvasPos.x,
+                  y: canvasPos.y,
+                });
+
+                // Add offset below the node (30px down)
+                const position = {
+                  x: domPos.x,
+                  y: domPos.y + node.value * 1.15 + 50,
+                };
+
+                const content = await TauriCommands.readNote(focusedNodeId);
+                openPreview(focusedNodeId, content, position);
+              } catch (error) {
+                console.error('Failed to load preview:', error);
+                setPreviewError(
+                  error instanceof Error ? error.message : 'Failed to load preview',
+                );
+              }
+            }
+          }
+          break;
+        }
+
         case 'app.openCommandMode':
           openCommandLine();
           break;
@@ -175,10 +224,18 @@ export const useKeybindings = () => {
           break;
 
         case 'app.escape': {
+          const { isOpen: isPreviewOpen } = usePreviewStore.getState();
           const { selectedNodeId, focusedNodeId } = useColoringStore.getState();
           const { isOpen: isCommandLineOpen } = useCommandLineStore.getState();
           const { currentMode } = useAppModeStore.getState();
 
+          // Priority 1: Close preview popup
+          if (isPreviewOpen) {
+            usePreviewStore.getState().close();
+            break;
+          }
+
+          // Priority 2: Command line (handled by its own component)
           if (isCommandLineOpen) {
             break;
           }
@@ -236,7 +293,11 @@ export const useKeybindings = () => {
       focusNode,
       setMode,
       openCommandLine,
-    ]
+      graphData,
+      openPreview,
+      setPreviewLoading,
+      setPreviewError,
+    ],
   );
 
   /**
@@ -260,6 +321,12 @@ export const useKeybindings = () => {
     (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // When preview is open, keybindings are handled by PreviewPopup
+      const { isOpen: isPreviewOpen } = usePreviewStore.getState();
+      if (isPreviewOpen) {
         return;
       }
 

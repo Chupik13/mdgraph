@@ -38,6 +38,7 @@ export type KeybindingAction =
   | 'graph.focusNode'
   | 'graph.deleteNode'
   | 'graph.openNode'
+  | 'graph.previewNode'
   | 'graph.renameNode'
   | 'viewport.zoomIn'
   | 'viewport.zoomOut'

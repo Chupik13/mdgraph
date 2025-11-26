@@ -303,3 +303,73 @@ pub fn create_phantom_node(node_name: String, state: State<AppState>) -> Result<
 
     Ok(file_path_str.to_string())
 }
+
+/// Reads the content of a markdown note by node ID.
+///
+/// This command retrieves the raw markdown content of a note file for preview
+/// purposes. It constructs the file path from the node ID and root directory,
+/// then reads and returns the file content.
+///
+/// # Arguments
+///
+/// * `node_id` - The ID/name of the node (without .md extension)
+/// * `state` - Tauri managed state containing the application configuration
+///
+/// # Returns
+///
+/// * `Ok(String)` - The markdown content of the file
+/// * `Err(String)` - Error message if reading fails
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - No `root_dir` is configured
+/// - The file doesn't exist (phantom node)
+/// - File reading fails due to permissions or encoding issues
+///
+/// # Frontend Usage
+///
+/// ```typescript
+/// import { invoke } from '@tauri-apps/api/core';
+///
+/// const content = await invoke('read_note', { nodeId: 'MyNote' });
+/// ```
+#[tauri::command]
+pub fn read_note(node_id: String, state: State<AppState>) -> Result<String, String> {
+    println!("[ReadNote] Reading note: {}", node_id);
+
+    let config = state.get_config();
+
+    let root_dir = config
+        .root_dir
+        .ok_or_else(|| "Root directory not configured".to_string())?;
+
+    let mut file_path = PathBuf::from(&root_dir);
+    file_path.push(format!("{}.md", node_id));
+
+    let file_path_str = file_path
+        .to_str()
+        .ok_or_else(|| "Invalid file path".to_string())?;
+
+    println!("[ReadNote] Resolved file path: {}", file_path_str);
+
+    if !file_path.exists() {
+        return Err(format!("File does not exist: {}", file_path_str));
+    }
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+
+    let offset = config.previewer.offset;
+    if offset > 0 {
+        println!("[ReadNote] Skipping {} lines (offset from config)", offset);
+    }
+
+    let result: String = content
+        .lines()
+        .skip(offset)
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    Ok(result)
+}

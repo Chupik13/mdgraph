@@ -1,4 +1,8 @@
 {
   "root_dir": "C:\\Users\\minta\\notes\\general",
-  "template_phantom_node": "C:\\Users\\minta\\notes\\templates\\template_new_note.md"
+  "template_phantom_node": "C:\\Users\\minta\\notes\\templates\\template_new_note.md",
+  "previewer": {
+      "offset": 5
+  }
+  
 }
