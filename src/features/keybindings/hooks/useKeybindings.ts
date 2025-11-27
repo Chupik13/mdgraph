@@ -171,17 +171,16 @@ export const useKeybindings = () => {
         }
 
         case 'graph.previewNode': {
+            console.log('sldkfjslkdfj');
           const { focusedNodeId } = useColoringStore.getState();
-          const { graphData, networkInstance } = useGraphStore.getState();
+          const networkInstance = graphDataService.getNetwork();
 
-          if (focusedNodeId && graphData && networkInstance) {
-            const node = graphData.nodes.find((n) => n.id === focusedNodeId);
-            // Ignore phantom nodes
+          if (focusedNodeId && graphDataService.isReady() && networkInstance) {
+            const node = graphDataService.getNodes().find((n) => n.id === focusedNodeId);
             if (node && node.group !== 'phantom') {
               try {
                 setPreviewLoading(true);
 
-                // Get node position in canvas coordinates
                 const positions = networkInstance.getPositions([focusedNodeId]);
                 const canvasPos = positions[focusedNodeId];
 
@@ -229,13 +228,11 @@ export const useKeybindings = () => {
           const { isOpen: isCommandLineOpen } = useCommandLineStore.getState();
           const { currentMode } = useAppModeStore.getState();
 
-          // Priority 1: Close preview popup
           if (isPreviewOpen) {
             usePreviewStore.getState().close();
             break;
           }
 
-          // Priority 2: Command line (handled by its own component)
           if (isCommandLineOpen) {
             break;
           }
@@ -248,7 +245,6 @@ export const useKeybindings = () => {
             }
           }
 
-          // Get network dynamically inside the action
           const network = graphDataService.getNetwork();
 
           if(network){
@@ -293,7 +289,6 @@ export const useKeybindings = () => {
       focusNode,
       setMode,
       openCommandLine,
-      graphData,
       openPreview,
       setPreviewLoading,
       setPreviewError,

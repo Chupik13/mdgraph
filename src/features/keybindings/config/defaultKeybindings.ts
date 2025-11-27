@@ -112,6 +112,8 @@ export const defaultKeybindings: Keybinding[] = [
     modifiers: { shift: true },
     action: 'search.prevResult',
     description: 'Navigate to previous search result (counterclockwise)',
+  },
+  {
     key: 'p',
     action: 'graph.previewNode',
     description: 'Preview node content',
