@@ -11,23 +11,48 @@
 
 import { DataSet } from 'vis-data';
 import type { Network } from 'vis-network';
-import type { Node, Edge } from '../../../shared/types';
+import type { Node, Edge, GraphData } from '../../../shared/types';
 
 type ChangeCallback = () => void;
+type StatusCallback = () => void;
 
 /**
- * Singleton service for managing graph data.
+ * Status of the graph data service.
+ *
+ * - `idle` - Initial state, no data loaded
+ * - `loading` - Data is being fetched from backend
+ * - `ready` - vis-network is initialized and ready
+ * - `error` - Error occurred during loading
+ */
+export type GraphStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+/**
+ * Singleton service for managing graph data and application status.
  *
  * @remarks
  * ## Responsibilities
  * - Ownership of DataSet (nodes and edges)
  * - Providing methods for data access
  * - Applying delta updates from file watcher
- * - Reinitialization on full graph reload
- * - Notifying subscribers about changes
+ * - Managing application status (idle/loading/ready/error)
+ * - Storing initial graph data for Network initialization
+ * - Notifying subscribers about data and status changes
+ *
+ * ## Status Flow
+ * ```
+ * idle -> loading -> ready (success)
+ *                 -> error (failure)
+ * ```
  *
  * ## Usage Pattern
  * ```typescript
+ * // Set loading status and initial data (in App.tsx)
+ * graphDataService.setStatus('loading');
+ * graphDataService.setInitialData(graphData);
+ *
+ * // React subscription (via useGraphStatus hook)
+ * const { status, error, initialData } = useGraphStatus();
+ *
  * // Initialization (in useGraphNetwork)
  * graphDataService.initialize(network);
  *
@@ -45,7 +70,12 @@ class GraphDataService {
   private edgesDataSet: DataSet<Edge & { id: string }> | null = null;
   private network: Network | null = null;
   private changeCallbacks = new Set<ChangeCallback>();
-  private isInitialized = false;
+  private statusCallbacks = new Set<StatusCallback>();
+  private phantomNodeIds = new Set<string>();
+
+  private _status: GraphStatus = 'idle';
+  private _error: string | null = null;
+  private _initialGraphData: GraphData | null = null;
 
   /**
    * Initializes the service with a Network instance.
@@ -69,8 +99,9 @@ class GraphDataService {
     // @ts-expect-error - accessing internal vis-network structure
     this.edgesDataSet = network.body.data.edges as DataSet<Edge & { id: string }>;
 
-    this.isInitialized = true;
+    this._status = 'ready';
     this.notifyChange();
+    this.notifyStatusChange();
   }
 
   /**
@@ -79,7 +110,80 @@ class GraphDataService {
    * @returns true if service is ready for use
    */
   isReady(): boolean {
-    return this.isInitialized && this.nodesDataSet !== null && this.edgesDataSet !== null;
+    return this._status === 'ready';
+  }
+
+  /**
+   * Gets the current status of the graph service.
+   *
+   * @returns Current status
+   */
+  getStatus(): GraphStatus {
+    return this._status;
+  }
+
+  /**
+   * Gets the current error message if status is 'error'.
+   *
+   * @returns Error message or null
+   */
+  getError(): string | null {
+    return this._error;
+  }
+
+  /**
+   * Sets the status of the graph service.
+   *
+   * @param status - New status
+   * @param error - Error message (only used when status is 'error')
+   */
+  setStatus(status: GraphStatus, error?: string): void {
+    this._status = status;
+    this._error = status === 'error' ? (error ?? 'Unknown error') : null;
+    this.notifyStatusChange();
+  }
+
+  /**
+   * Stores initial graph data before Network initialization.
+   *
+   * This data is used by useGraphNetwork to create the vis-network instance.
+   * After initialization, use getNodes()/getEdges() to access current data.
+   * Also initializes phantomNodeIds set from the initial data.
+   *
+   * @param data - Graph data from backend
+   */
+  setInitialData(data: GraphData): void {
+    this._initialGraphData = data;
+
+    // Initialize phantom node tracking from initial data
+    this.phantomNodeIds.clear();
+    data.nodes.forEach(node => {
+      if (node.group === 'phantom') {
+        this.phantomNodeIds.add(node.id);
+      }
+    });
+
+    this.notifyStatusChange();
+  }
+
+  /**
+   * Gets the initial graph data for Network creation.
+   *
+   * @returns Initial graph data or null if not set
+   */
+  getInitialData(): GraphData | null {
+    return this._initialGraphData;
+  }
+
+  /**
+   * Subscribes to status changes.
+   *
+   * @param callback - Function called on status change
+   * @returns Unsubscribe function
+   */
+  subscribeToStatus(callback: StatusCallback): () => void {
+    this.statusCallbacks.add(callback);
+    return () => this.statusCallbacks.delete(callback);
   }
 
   /**
@@ -159,16 +263,32 @@ class GraphDataService {
    * Adds a new node to the graph.
    *
    * If a node with the same ID already exists, it will be updated instead.
+   * The `group` property is removed before adding to vis-network DataSet
+   * because vis-network requires groups to be defined in options, but we
+   * handle styling directly via color properties. Phantom status is tracked
+   * separately in phantomNodeIds set.
    *
    * @param node - Node to add (with styles already applied)
    */
   addNode(node: Node): void {
     if (!this.nodesDataSet) return;
 
-    if (this.nodesDataSet.get(node.id)) {
-      this.nodesDataSet.update(node);
+    // Track phantom nodes separately (group is removed from DataSet)
+    if (node.group === 'phantom') {
+      this.phantomNodeIds.add(node.id);
     } else {
-      this.nodesDataSet.add(node);
+      this.phantomNodeIds.delete(node.id);
+    }
+
+    // Remove 'group' to avoid vis-network "updateGroupOptions" error
+    // (we apply styles directly, not via vis-network groups)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { group, ...nodeWithoutGroup } = node;
+
+    if (this.nodesDataSet.get(node.id)) {
+      this.nodesDataSet.update(nodeWithoutGroup as Node);
+    } else {
+      this.nodesDataSet.add(nodeWithoutGroup as Node);
     }
     this.notifyChange();
   }
@@ -181,7 +301,18 @@ class GraphDataService {
   removeNode(nodeId: string): void {
     if (!this.nodesDataSet) return;
     this.nodesDataSet.remove(nodeId);
+    this.phantomNodeIds.delete(nodeId);
     this.notifyChange();
+  }
+
+  /**
+   * Checks if a node is a phantom node (broken wiki-link).
+   *
+   * @param nodeId - ID of the node to check
+   * @returns true if the node is a phantom node
+   */
+  isPhantom(nodeId: string): boolean {
+    return this.phantomNodeIds.has(nodeId);
   }
 
   /**
@@ -260,14 +391,28 @@ class GraphDataService {
   }
 
   /**
-   * Cleans up the service on unmount.
+   * Resets the service for component unmount.
+   *
+   * Resets network, DataSet, and status to initial state.
+   * Preserves the following for React StrictMode remount support:
+   * - _initialGraphData: Allows re-initialization without re-fetching
+   * - phantomNodeIds: Maintains phantom node tracking across remounts
+   * - changeCallbacks/statusCallbacks: Subscriptions are managed by React cleanup
+   *
+   * @remarks
+   * This method is called during component unmount. React's `useSyncExternalStore`
+   * and effect cleanup functions handle subscription removal automatically.
+   * Clearing callbacks here would cause duplicate listeners on StrictMode remount.
    */
   destroy(): void {
     this.nodesDataSet = null;
     this.edgesDataSet = null;
     this.network = null;
-    this.changeCallbacks.clear();
-    this.isInitialized = false;
+    // Don't clear callbacks - React cleanup handles subscription removal
+    // Don't clear phantomNodeIds or _initialGraphData - needed for StrictMode remount
+    this._status = 'idle';
+    this._error = null;
+    this.notifyStatusChange();
   }
 
   /**
@@ -275,6 +420,13 @@ class GraphDataService {
    */
   private notifyChange(): void {
     this.changeCallbacks.forEach(cb => cb());
+  }
+
+  /**
+   * Notifies all subscribers about a status change.
+   */
+  private notifyStatusChange(): void {
+    this.statusCallbacks.forEach(cb => cb());
   }
 }
 

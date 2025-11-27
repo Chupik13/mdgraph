@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { useGraphStore } from '../store/graphStore';
 import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
 import { CameraService, FAST_ANIMATION } from '../../camera';
 import { graphDataService } from '../services/GraphDataService';
+import { useGraphStatus } from './useGraphStatus';
+import type { Node } from '../../../shared/types';
 
 /**
  * Hook for incremental node search by label with automatic viewport adjustment.
@@ -29,14 +30,15 @@ import { graphDataService } from '../services/GraphDataService';
  * // Matching nodes are highlighted, camera zooms to fit them
  */
 export const useNodeSearch = () => {
+  const { status } = useGraphStatus();
   const setActiveNodes = useColoringStore((state) => state.setActiveNodes);
   const input = useCommandLineStore((state) => state.input);
   const currentMode = useAppModeStore((state) => state.currentMode);
-  const networkInstance = useGraphStore((state) => state.networkInstance);
 
   const cameraService = useMemo(() => {
-    return networkInstance ? new CameraService(networkInstance) : null;
-  }, [networkInstance]);
+    if (status !== 'ready') return null;
+    return new CameraService(() => graphDataService.getNetwork());
+  }, [status]);
 
   useEffect(() => {
     if (currentMode !== 'search') {
@@ -44,7 +46,7 @@ export const useNodeSearch = () => {
       return;
     }
 
-    if (!graphDataService.isReady()) {
+    if (status !== 'ready') {
       return;
     }
 
@@ -67,5 +69,5 @@ export const useNodeSearch = () => {
     if (matchedNodeIds.length > 0 && cameraService) {
       cameraService.fitAll(matchedNodeIds, FAST_ANIMATION);
     }
-  }, [currentMode, input, graphDataService, setActiveNodes, cameraService]);
+  }, [currentMode, input, status, setActiveNodes, cameraService]);
 };

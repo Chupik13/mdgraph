@@ -9,7 +9,8 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useGraphStore } from '../../graph/store/graphStore';
+import { graphDataService } from '../../graph/services/GraphDataService';
+import { useGraphStatus } from '../../graph/hooks/useGraphStatus';
 import { useColoringStore } from '../../coloring';
 import { CameraService } from '../../camera';
 import { sortNodesByAngle } from '../utils';
@@ -52,12 +53,13 @@ import { sortNodesByAngle } from '../utils';
  * // Press 'N' -> navigatePrevSearchResult()  (counterclockwise)
  */
 export const useSearchNavigation = () => {
-  const networkInstance = useGraphStore((state) => state.networkInstance);
+  const { status } = useGraphStatus();
   const focusNode = useColoringStore((state) => state.focusNode);
 
   const cameraService = useMemo(() => {
-    return networkInstance ? new CameraService(networkInstance) : null;
-  }, [networkInstance]);
+    if (status !== 'ready') return null;
+    return new CameraService(() => graphDataService.getNetwork());
+  }, [status]);
 
   /**
    * Gets all search result nodes sorted clockwise by angle from viewport center.
@@ -78,14 +80,14 @@ export const useSearchNavigation = () => {
    * 6. Sort nodes by resulting angle
    */
   const getSearchResultsSorted = useCallback((): string[] => {
-    const { graphData } = useGraphStore.getState();
+    const network = graphDataService.getNetwork();
     const activeIds = useColoringStore.getState().activeNodeIds;
 
-    if (!networkInstance || !graphData || !activeIds || activeIds.size === 0) {
+    if (!network || !graphDataService.isReady() || !activeIds || activeIds.size === 0) {
       return [];
     }
 
-    const positions = networkInstance.getPositions();
+    const positions = network.getPositions();
 
     // Вычисляем центр масс всех найденных нод - фиксированная точка отсчёта
     let sumX = 0,
@@ -107,7 +109,7 @@ export const useSearchNavigation = () => {
     const centroid = { x: sumX / count, y: sumY / count };
 
     return sortNodesByAngle(Array.from(activeIds), positions, centroid);
-  }, [networkInstance]);
+  }, []);
 
   /**
    * Navigates to the next search result in clockwise order.

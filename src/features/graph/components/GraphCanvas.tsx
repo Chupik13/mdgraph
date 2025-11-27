@@ -9,11 +9,11 @@
  */
 
 import React, { useRef } from 'react';
-import { useGraphStore } from '../store/graphStore';
 import { useGraphNetwork } from '../hooks/useGraphNetwork';
 import { useGraphDeltaSync } from '../hooks/useGraphDeltaSync';
 import { useNodeSearch } from '../hooks/useNodeSearch';
 import { useNodeSelection } from '../hooks/useNodeSelection';
+import { useGraphStatus } from '../hooks/useGraphStatus';
 import { useNodeColoring } from '../../coloring';
 import { usePreviewStore } from '../../preview/store/previewStore';
 
@@ -41,12 +41,10 @@ import { usePreviewStore } from '../../preview/store/previewStore';
  */
 export const GraphCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphData = useGraphStore((state) => state.graphData);
-  const isLoading = useGraphStore((state) => state.isLoading);
-  const error = useGraphStore((state) => state.error);
+  const { status, error, initialData } = useGraphStatus();
   const isPreviewOpen = usePreviewStore((state) => state.isOpen);
 
-  const { network } = useGraphNetwork(containerRef, graphData);
+  const { network } = useGraphNetwork(containerRef, initialData);
 
   useNodeColoring(network);
   useNodeSearch();
@@ -58,7 +56,7 @@ export const GraphCanvas: React.FC = () => {
       {/* vis-network */}
       <div ref={containerRef} className="w-full h-full" data-testid="graph-canvas" />
 
-      {error && (
+      {status === 'error' && error && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-white/90"
           role="alert"
@@ -71,7 +69,7 @@ export const GraphCanvas: React.FC = () => {
         </div>
       )}
 
-      {!isLoading && !error && (!graphData || graphData.nodes.length === 0) && (
+      {status === 'idle' && (
         <div className="absolute inset-0 flex items-center justify-center text-gray-500">
           <div className="text-center">
             <svg

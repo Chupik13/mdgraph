@@ -116,25 +116,6 @@ export interface ViewportState {
 }
 
 /**
- * Graph filtering options for search and display.
- *
- * Controls which nodes and edges are visible in the graph visualization.
- * Filters are applied client-side without re-scanning the backend.
- *
- * @property searchQuery - Text search query for filtering nodes by name or content.
- *                         Empty string shows all nodes.
- * @property showPhantomNodes - Whether to display phantom nodes (broken links) in the graph.
- * @property hashtags - List of hashtags to filter by. Empty array shows nodes with any/no hashtags.
- * @property nodeGroups - List of node groups to display. Empty array shows all groups.
- */
-export interface GraphFilters {
-  searchQuery: string;
-  showPhantomNodes: boolean;
-  hashtags: string[];
-  nodeGroups: NodeGroup[];
-}
-
-/**
  * Delta event types for incremental graph updates.
  *
  * These events are emitted by the backend file watcher when files are

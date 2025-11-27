@@ -13,7 +13,6 @@ import { Network } from 'vis-network';
 import { DataSet } from 'vis-data';
 import { getVisNetworkOptions } from '../utils/visNetworkConfig';
 import { getPhantomNodeStyle, getRegularNodeStyle } from '../../coloring';
-import { useGraphStore } from '../store/graphStore';
 import { graphDataService } from '../services/GraphDataService';
 import type { GraphData } from '../../../shared/types';
 
@@ -68,8 +67,6 @@ export const useGraphNetwork = (
   graphData: GraphData | null
 ) => {
   const [network, setNetwork] = useState<Network | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const setNetworkInstance = useGraphStore(state => state.setNetworkInstance);
 
   useEffect(() => {
     if (!containerRef.current || !graphData) return;
@@ -120,7 +117,6 @@ export const useGraphNetwork = (
     networkInstance.once('stabilized', () => {
       if (isMounted) {
         networkInstance.setOptions({ physics: { enabled: false } });
-        setIsReady(true);
       }
     });
 
@@ -128,15 +124,13 @@ export const useGraphNetwork = (
       if (isMounted && networkInstance) {
         networkInstance.stopSimulation();
         networkInstance.setOptions({ physics: { enabled: false } });
-        setIsReady(true);
       }
     }, 1000);
 
     setNetwork(networkInstance);
-    setNetworkInstance(networkInstance);
 
     // Initialize GraphDataService with the network instance
-    // This makes DataSet the single source of truth for graph data
+    // This sets status to 'ready' and makes DataSet the single source of truth
     graphDataService.initialize(networkInstance);
 
     return () => {
@@ -145,10 +139,8 @@ export const useGraphNetwork = (
       graphDataService.destroy();
       networkInstance.destroy();
       setNetwork(null);
-      setNetworkInstance(null);
-      setIsReady(false);
     };
-  }, [containerRef, graphData, setNetworkInstance]);
+  }, [containerRef, graphData]);
 
-  return { network, isReady };
+  return { network };
 };

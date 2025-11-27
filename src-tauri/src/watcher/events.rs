@@ -42,17 +42,27 @@ pub enum GraphDeltaEvent {
 /// * `app` - Tauri application handle
 /// * `delta` - Graph delta containing all changes to emit
 pub fn emit_delta(app: &AppHandle, delta: GraphDelta) {
+    // IMPORTANT: Order matters! Removals must come before additions
+    // to handle phantom->real node transitions correctly.
+
+    // Emit node removals first (e.g., remove phantom before adding real node)
+    for node_id in delta.nodes_removed {
+        if let Err(e) = app.emit("graph-delta", GraphDeltaEvent::NodeRemoved { node_id }) {
+            eprintln!("[Watcher] Failed to emit node-removed event: {}", e);
+        }
+    }
+
+    // Emit edge removals
+    for edge in delta.edges_removed {
+        if let Err(e) = app.emit("graph-delta", GraphDeltaEvent::EdgeRemoved { edge }) {
+            eprintln!("[Watcher] Failed to emit edge-removed event: {}", e);
+        }
+    }
+
     // Emit node additions
     for node in delta.nodes_added {
         if let Err(e) = app.emit("graph-delta", GraphDeltaEvent::NodeAdded { node }) {
             eprintln!("[Watcher] Failed to emit node-added event: {}", e);
-        }
-    }
-
-    // Emit node removals
-    for node_id in delta.nodes_removed {
-        if let Err(e) = app.emit("graph-delta", GraphDeltaEvent::NodeRemoved { node_id }) {
-            eprintln!("[Watcher] Failed to emit node-removed event: {}", e);
         }
     }
 
@@ -67,13 +77,6 @@ pub fn emit_delta(app: &AppHandle, delta: GraphDelta) {
     for edge in delta.edges_added {
         if let Err(e) = app.emit("graph-delta", GraphDeltaEvent::EdgeAdded { edge }) {
             eprintln!("[Watcher] Failed to emit edge-added event: {}", e);
-        }
-    }
-
-    // Emit edge removals
-    for edge in delta.edges_removed {
-        if let Err(e) = app.emit("graph-delta", GraphDeltaEvent::EdgeRemoved { edge }) {
-            eprintln!("[Watcher] Failed to emit edge-removed event: {}", e);
         }
     }
 }

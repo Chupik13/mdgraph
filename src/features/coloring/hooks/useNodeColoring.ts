@@ -3,7 +3,7 @@ import type { Network } from 'vis-network';
 import { graphDataService } from '../../graph/services/GraphDataService';
 import { useColoringStore } from '../store/coloringStore';
 import type { NodeType } from '../utils/nodeColors';
-import { getNodeStyle, getInactiveNodeStyle } from '../utils/nodeColors';
+import { getNodeStyle, getInactiveNodeStyle, getPhantomNodeStyle } from '../utils/nodeColors';
 
 /**
  * Hook for managing node colors in the graph visualization.
@@ -38,16 +38,17 @@ export const useNodeColoring = (network: Network | null) => {
   useEffect(() => {
     if (!network || !graphDataService.isReady()) return;
 
+    // Track mounted state to prevent updates after unmount
+    let isMounted = true;
+
     const allNodeIds = graphDataService.getNodeIds();
 
     const getNodeType = (nodeId: string): NodeType => {
-      const node = graphDataService.getNode(nodeId);
-
       // Priority order matters: selected > outgoing/incoming > phantom > regular
       if (nodeId === selectedNodeId) return 'selected';
       if (outgoingNodeIds.has(nodeId)) return 'outgoing';
       if (incomingNodeIds.has(nodeId)) return 'incoming';
-      if (node?.group === 'phantom') return 'phantom';
+      if (graphDataService.isPhantom(nodeId)) return 'phantom';
       return 'regular';
     };
 
@@ -83,10 +84,22 @@ export const useNodeColoring = (network: Network | null) => {
       const type = getNodeType(nodeId);
       const isFocused = nodeId === focusedNodeId;
 
+      // Phantom nodes need special style with borderDashes
+      if (type === 'phantom') {
+        return { id: nodeId, ...getPhantomNodeStyle(isFocused) };
+      }
+
       return { id: nodeId, ...getNodeStyle(type, isFocused) };
     });
 
     // Batch update all nodes at once for better performance
-    graphDataService.updateNodes(updates);
+    // Check isMounted to prevent updates after component unmount
+    if (isMounted) {
+      graphDataService.updateNodes(updates);
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, [network, selectedNodeId, focusedNodeId, incomingNodeIds, outgoingNodeIds, activeNodeIds]);
 };

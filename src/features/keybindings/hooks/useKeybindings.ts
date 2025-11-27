@@ -115,7 +115,6 @@ export const useKeybindings = () => {
    */
   const executeAction = useCallback(
     async (action: KeybindingAction) => {
-      console.log('Executing action:', action);
       switch (action) {
         case 'graph.selectLeft':
           navigateLeft();
@@ -171,7 +170,6 @@ export const useKeybindings = () => {
         }
 
         case 'graph.previewNode': {
-            console.log('sldkfjslkdfj');
           const { focusedNodeId } = useColoringStore.getState();
           const networkInstance = graphDataService.getNetwork();
 
@@ -248,7 +246,7 @@ export const useKeybindings = () => {
           const network = graphDataService.getNetwork();
 
           if(network){
-              const cameraService = new CameraService(network);
+              const cameraService = new CameraService(() => graphDataService.getNetwork());
               if (selectedNodeId && focusedNodeId !== selectedNodeId) {
                   focusNode(selectedNodeId);
                   const { incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();

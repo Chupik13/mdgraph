@@ -166,12 +166,16 @@ export const useGraphDeltaSync = (network: Network | null) => {
         }
 
         case 'node-updated': {
-          // Update node through GraphDataService
+          // Apply appropriate style based on node type
+          const updatedStyle =
+            event.node.group === 'phantom' ? getPhantomNodeStyle() : getRegularNodeStyle();
+
+          // Update node through GraphDataService with styles applied
           graphDataService.updateNode({
             id: event.node.id,
             label: event.node.label,
             value: event.node.value,
-            group: event.node.group,
+            ...updatedStyle,
           });
           break;
         }

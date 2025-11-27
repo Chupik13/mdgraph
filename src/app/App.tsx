@@ -5,38 +5,37 @@ import { PreviewPopup } from '../features/preview';
 import { useKeybindings } from '../features/keybindings/hooks/useKeybindings';
 import { useGraphSync } from '../infrastructure/services/GraphSyncService';
 import { TauriCommands } from '../infrastructure/tauri/commands';
-import { useGraphStore } from '../features/graph/store/graphStore';
+import { graphDataService } from '../features/graph/services/GraphDataService';
 
 export const App: React.FC = () => {
-  const setGraphData = useGraphStore(state => state.setGraphData);
-  const setLoading = useGraphStore(state => state.setLoading);
-  const setError = useGraphStore(state => state.setError);
-
   useKeybindings();
   useGraphSync();
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        setLoading(true);
+        graphDataService.setStatus('loading');
 
         const config = await TauriCommands.getConfig();
 
         if (config.root_dir) {
           const graphData = await TauriCommands.scanFolder(config.root_dir);
-          setGraphData(graphData);
+          graphDataService.setInitialData(graphData);
         } else {
-          setLoading(false);
+          graphDataService.setStatus('idle');
           console.warn('[App] No root_dir configured');
         }
       } catch (error) {
         console.error('[App] Failed to initialize:', error);
-        setError(error instanceof Error ? error.message : 'Failed to initialize application');
+        graphDataService.setStatus(
+          'error',
+          error instanceof Error ? error.message : 'Failed to initialize application'
+        );
       }
     };
 
     initializeApp();
-  }, [setGraphData, setLoading, setError]);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-gray-900/50">

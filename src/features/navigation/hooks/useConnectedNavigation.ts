@@ -155,7 +155,7 @@ export const useConnectedNavigation = () => {
 
       const network = graphDataService.getNetwork();
       if (network) {
-        const cameraService = new CameraService(network);
+        const cameraService = new CameraService(() => graphDataService.getNetwork());
         cameraService.focusOnNode(nextNodeId, 1.7);
       }
     }
@@ -204,7 +204,7 @@ export const useConnectedNavigation = () => {
 
       const network = graphDataService.getNetwork();
       if (network) {
-        const cameraService = new CameraService(network);
+        const cameraService = new CameraService(() => graphDataService.getNetwork());
         cameraService.focusOnNode(prevNodeId, 1.7);
       }
     }

@@ -232,7 +232,7 @@ export const useVimNavigation = () => {
       focusNode(nodeId);
       const network = graphDataService.getNetwork();
       if (network) {
-        const cameraService = new CameraService(network);
+        const cameraService = new CameraService(() => graphDataService.getNetwork());
         cameraService.focusOnNode(nodeId, 1.3);
       }
     },

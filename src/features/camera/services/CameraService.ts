@@ -66,8 +66,8 @@ export interface CameraAnimationOptions {
  * Camera state should be tracked separately in the camera store if needed.
  *
  * @example
- * const network = new Network(container, data, options);
- * const cameraService = new CameraService(network);
+ * import { graphDataService } from '../../graph/services/GraphDataService';
+ * const cameraService = new CameraService(() => graphDataService.getNetwork());
  *
  * // Focus on a specific node
  * cameraService.focusOnNode('node1');
@@ -79,15 +79,30 @@ export interface CameraAnimationOptions {
  * cameraService.resetZoom();
  */
 export class CameraService {
-  private network: Network;
+  private getNetworkFn: () => Network | null;
 
   /**
    * Creates a new CameraService instance.
    *
-   * @param network - The vis-network instance to control
+   * @param getNetwork - Function that returns the current vis-network instance.
+   *                     Using a getter ensures we always have the latest network
+   *                     reference, even after React StrictMode remounts.
    */
-  constructor(network: Network) {
-    this.network = network;
+  constructor(getNetwork: () => Network | null) {
+    this.getNetworkFn = getNetwork;
+  }
+
+  /**
+   * Gets the network instance if it exists and is not destroyed.
+   *
+   * @returns Network instance or null if unavailable/destroyed
+   */
+  private getNetwork(): Network | null {
+    const network = this.getNetworkFn();
+    // Check if network exists and has body (not destroyed)
+    // @ts-expect-error - accessing internal vis-network structure to check if destroyed
+    if (!network || !network.body) return null;
+    return network;
   }
 
   /**
@@ -119,7 +134,10 @@ export class CameraService {
     scale: number = 1.3,
     animation: CameraAnimationOptions = DEFAULT_ANIMATION
   ): void {
-    this.network.focus(nodeId, {
+    const network = this.getNetwork();
+    if (!network) return;
+
+    network.focus(nodeId, {
       scale,
       locked: false,
       animation: {
@@ -147,11 +165,14 @@ export class CameraService {
    * cameraService.zoomIn(50, SLOW_ANIMATION);
    */
   zoomIn(percent: number = 30, animation: CameraAnimationOptions = DEFAULT_ANIMATION): void {
-    const currentScale = this.network.getScale();
+    const network = this.getNetwork();
+    if (!network) return;
+
+    const currentScale = network.getScale();
     const multiplier = 1 + percent / 100;
     const newScale = currentScale * multiplier;
 
-    this.network.moveTo({
+    network.moveTo({
       scale: newScale,
       animation: {
         duration: animation.duration ?? DEFAULT_ANIMATION.duration,
@@ -178,11 +199,14 @@ export class CameraService {
    * cameraService.zoomOut(50, FAST_ANIMATION);
    */
   zoomOut(percent: number = 30, animation: CameraAnimationOptions = DEFAULT_ANIMATION): void {
-    const currentScale = this.network.getScale();
+    const network = this.getNetwork();
+    if (!network) return;
+
+    const currentScale = network.getScale();
     const multiplier = 1 - percent / 100;
     const newScale = currentScale * multiplier;
 
-    this.network.moveTo({
+    network.moveTo({
       scale: newScale,
       animation: {
         duration: animation.duration ?? DEFAULT_ANIMATION.duration,
@@ -234,7 +258,10 @@ export class CameraService {
    * cameraService.fitAll(['node1', 'node2', 'node3'], FAST_ANIMATION);
    */
   fitAll(nodeIds?: string[], animation: CameraAnimationOptions = SLOW_ANIMATION): void {
-    this.network.fit({
+    const network = this.getNetwork();
+    if (!network) return;
+
+    network.fit({
       nodes: nodeIds,
       animation: {
         duration: animation.duration ?? SLOW_ANIMATION.duration,
@@ -272,7 +299,10 @@ export class CameraService {
     scale?: number,
     animation: CameraAnimationOptions = DEFAULT_ANIMATION
   ): void {
-    this.network.moveTo({
+    const network = this.getNetwork();
+    if (!network) return;
+
+    network.moveTo({
       position: { x, y },
       scale,
       animation: {
@@ -292,7 +322,8 @@ export class CameraService {
    * console.log(`Current zoom: ${(currentZoom * 100).toFixed(0)}%`);
    */
   getCurrentZoom(): number {
-    return this.network.getScale();
+    const network = this.getNetwork();
+    return network?.getScale() ?? 1;
   }
 
   /**
@@ -305,7 +336,8 @@ export class CameraService {
    * console.log(`Camera at: ${position.x}, ${position.y}`);
    */
   getCurrentPosition(): { x: number; y: number } {
-    return this.network.getViewPosition();
+    const network = this.getNetwork();
+    return network?.getViewPosition() ?? { x: 0, y: 0 };
   }
 
   /**
@@ -326,7 +358,10 @@ export class CameraService {
    * cameraService.setZoom(2.0, FAST_ANIMATION);
    */
   setZoom(scale: number, animation: CameraAnimationOptions = DEFAULT_ANIMATION): void {
-    this.network.moveTo({
+    const network = this.getNetwork();
+    if (!network) return;
+
+    network.moveTo({
       scale,
       animation: {
         duration: animation.duration ?? DEFAULT_ANIMATION.duration,
