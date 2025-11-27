@@ -103,6 +103,17 @@ export const defaultKeybindings: Keybinding[] = [
     description: 'Open node in editor',
   },
   {
+    key: 'n',
+    action: 'search.nextResult',
+    description: 'Navigate to next search result (clockwise)',
+  },
+  {
+    key: 'N',
+    modifiers: { shift: true },
+    action: 'search.prevResult',
+    description: 'Navigate to previous search result (counterclockwise)',
+  },
+  {
     key: ':',
     modifiers: { shift: true },
     action: 'app.openCommandMode',

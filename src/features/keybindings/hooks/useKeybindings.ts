@@ -15,7 +15,7 @@ import { graphDataService } from '../../graph/services/GraphDataService';
 import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
-import { useVimNavigation, useConnectedNavigation } from '../../navigation';
+import { useVimNavigation, useConnectedNavigation, useSearchNavigation } from '../../navigation';
 import { CameraService } from '../../camera';
 import { TauriCommands } from '../../../infrastructure/tauri/commands';
 import type { KeybindingAction } from '../store/keybindingStore';
@@ -84,6 +84,7 @@ export const useKeybindings = () => {
 
   const { navigateLeft, navigateRight, navigateUp, navigateDown } = useVimNavigation();
   const { navigateNextConnected, navigatePrevConnected } = useConnectedNavigation();
+  const { navigateNextSearchResult, navigatePrevSearchResult } = useSearchNavigation();
 
   const selectNode = useColoringStore(state => state.selectNode);
   const focusNode = useColoringStore(state => state.focusNode);
@@ -130,6 +131,14 @@ export const useKeybindings = () => {
 
         case 'graph.focusPrevConnected':
           navigatePrevConnected();
+          break;
+
+        case 'search.nextResult':
+          navigateNextSearchResult();
+          break;
+
+        case 'search.prevResult':
+          navigatePrevSearchResult();
           break;
 
         case 'graph.selectFocusedNode': {
@@ -200,9 +209,10 @@ export const useKeybindings = () => {
           } else if (selectedNodeId && focusedNodeId === selectedNodeId) {
             selectNode(null);
           } else if (!selectedNodeId) {
-            if (network) {
-              const cameraService = new CameraService(network);
-              cameraService.resetZoom();
+            if (cameraService) {
+              const { activeNodeIds } = useColoringStore.getState();
+              const nodeIds = activeNodeIds ? Array.from(activeNodeIds) : [];
+              cameraService.fitAll(nodeIds);
               focusNode(null);
             }
           }
@@ -220,6 +230,8 @@ export const useKeybindings = () => {
       navigateDown,
       navigateNextConnected,
       navigatePrevConnected,
+      navigateNextSearchResult,
+      navigatePrevSearchResult,
       selectNode,
       focusNode,
       setMode,
