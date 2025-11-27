@@ -8,8 +8,8 @@
  * @module features/navigation/hooks/useConnectedNavigation
  */
 
-import { useCallback, useMemo } from 'react';
-import { useGraphStore } from '../../graph/store/graphStore';
+import { useCallback } from 'react';
+import { graphDataService } from '../../graph/services/GraphDataService';
 import { useColoringStore } from '../../coloring';
 import { CameraService } from '../../camera';
 
@@ -56,12 +56,7 @@ import { CameraService } from '../../camera';
  * // Press 'b' -> navigatePrevConnected()  (counterclockwise)
  */
 export const useConnectedNavigation = () => {
-  const networkInstance = useGraphStore(state => state.networkInstance);
   const focusNode = useColoringStore(state => state.focusNode);
-
-  const cameraService = useMemo(() => {
-    return networkInstance ? new CameraService(networkInstance) : null;
-  }, [networkInstance]);
 
   /**
    * Gets all connected nodes sorted clockwise by angle.
@@ -92,9 +87,9 @@ export const useConnectedNavigation = () => {
    */
   const getConnectedNodesSorted = useCallback((): string[] => {
     const { selectedNodeId, incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();
-    const { graphData } = useGraphStore.getState();
+    const network = graphDataService.getNetwork();
 
-    if (!selectedNodeId || !networkInstance || !graphData) {
+    if (!selectedNodeId || !network || !graphDataService.isReady()) {
       return [];
     }
 
@@ -104,7 +99,7 @@ export const useConnectedNavigation = () => {
       return [];
     }
 
-    const positions = networkInstance.getPositions();
+    const positions = network.getPositions();
     const selectedPos = positions[selectedNodeId];
 
     if (!selectedPos) {
@@ -133,7 +128,7 @@ export const useConnectedNavigation = () => {
     nodesWithAngles.sort((a, b) => a.angle - b.angle);
 
     return nodesWithAngles.map(item => item.nodeId);
-  }, [networkInstance]);
+  }, []);
 
   /**
    * Navigates to the next connected node in clockwise order.
@@ -160,7 +155,6 @@ export const useConnectedNavigation = () => {
    */
   const navigateNextConnected = useCallback(() => {
     const { focusedNodeId } = useColoringStore.getState();
-    const { graphData } = useGraphStore.getState();
     const sortedNodes = getConnectedNodesSorted();
 
     if (sortedNodes.length === 0) {
@@ -175,16 +169,19 @@ export const useConnectedNavigation = () => {
 
     if (!nextNodeId) return;
 
-    const node = graphData?.nodes.find(n => n.id === nextNodeId);
+    // Use GraphDataService to get node info
+    const node = graphDataService.getNode(nextNodeId);
     if (node) {
       console.log('[ConnectedNav] Navigate next:', node.label);
       focusNode(nextNodeId);
 
-      if (cameraService) {
+      const network = graphDataService.getNetwork();
+      if (network) {
+        const cameraService = new CameraService(network);
         cameraService.focusOnNode(nextNodeId, 1.7);
       }
     }
-  }, [getConnectedNodesSorted, focusNode, cameraService]);
+  }, [getConnectedNodesSorted, focusNode]);
 
   /**
    * Navigates to the previous connected node in counterclockwise order.
@@ -209,7 +206,6 @@ export const useConnectedNavigation = () => {
    */
   const navigatePrevConnected = useCallback(() => {
     const { focusedNodeId } = useColoringStore.getState();
-    const { graphData } = useGraphStore.getState();
     const sortedNodes = getConnectedNodesSorted();
 
     if (sortedNodes.length === 0) {
@@ -223,15 +219,18 @@ export const useConnectedNavigation = () => {
 
     if (!prevNodeId) return;
 
-    const node = graphData?.nodes.find(n => n.id === prevNodeId);
+    // Use GraphDataService to get node info
+    const node = graphDataService.getNode(prevNodeId);
     if (node) {
       focusNode(prevNodeId);
 
-      if (cameraService) {
+      const network = graphDataService.getNetwork();
+      if (network) {
+        const cameraService = new CameraService(network);
         cameraService.focusOnNode(prevNodeId, 1.7);
       }
     }
-  }, [getConnectedNodesSorted, focusNode, cameraService]);
+  }, [getConnectedNodesSorted, focusNode]);
 
   return {
     navigateNextConnected,

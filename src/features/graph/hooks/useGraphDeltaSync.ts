@@ -2,18 +2,18 @@
  * Hook for synchronizing graph delta events with vis-network.
  *
  * This hook handles incremental updates to the graph visualization by listening
- * to backend file watcher events and applying changes directly to the vis-network
- * DataSet. This approach preserves node positions and avoids full graph redraws.
+ * to backend file watcher events and applying changes through GraphDataService.
+ * This approach preserves node positions and avoids full graph redraws.
  *
  * @module features/graph/hooks/useGraphDeltaSync
  */
 
 import { useEffect, useRef } from 'react';
 import type { Network } from 'vis-network';
-import type { DataSet } from 'vis-data';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 
 import { TauriEvents } from '../../../infrastructure/tauri/events';
+import { graphDataService } from '../services/GraphDataService';
 import {
   getPhantomNodeStyle,
   getRegularNodeStyle,
@@ -22,7 +22,6 @@ import {
 } from '../../coloring';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
-import type { Node, Edge } from '../../../shared/types';
 
 /**
  * Synchronizes graph delta events from the backend with vis-network visualization.
@@ -30,12 +29,8 @@ import type { Node, Edge } from '../../../shared/types';
  * When the backend file watcher detects changes to markdown files, it emits delta
  * events (node-added, node-removed, edge-added, edge-removed). This hook:
  * 1. Subscribes to these events via Tauri
- * 2. Applies changes directly to vis-network DataSets for efficient rendering
+ * 2. Applies changes through GraphDataService (single source of truth)
  * 3. Temporarily enables physics for smooth node repositioning
- *
- * Note: This hook does NOT update the Zustand store to avoid triggering a full
- * network recreation. The vis-network DataSet is the source of truth for runtime
- * graph state after delta events are applied.
  *
  * @param network - vis-network instance to update, or null if not yet initialized
  *
@@ -50,9 +45,8 @@ import type { Node, Edge } from '../../../shared/types';
  * Existing nodes maintain their positions. New nodes are positioned by vis-network's
  * physics simulation near their connected nodes.
  *
- * ## DataSet Access
- * The hook accesses vis-network's internal DataSet via `network.body.data.nodes/edges`.
- * This is the recommended approach for incremental updates.
+ * ## Single Source of Truth
+ * All mutations go through GraphDataService, which owns the DataSet.
  *
  * @example
  * function GraphCanvas() {
@@ -108,18 +102,10 @@ export const useGraphDeltaSync = (network: Network | null) => {
     // Subscribe to delta events
     TauriEvents.onGraphDelta(event => {
       const currentNetwork = networkRef.current;
-      if (!currentNetwork) return;
-
-      // Access vis-network's internal DataSets
-      // @ts-expect-error - accessing internal vis-network structure
-      const nodesDataSet = currentNetwork.body.data.nodes as DataSet<Node>;
-      // @ts-expect-error - accessing internal vis-network structure
-      const edgesDataSet = currentNetwork.body.data.edges as DataSet<Edge & { id: string }>;
-
+      if (!currentNetwork || !graphDataService.isReady()) return;
 
       switch (event.type) {
         case 'node-added': {
-
           const { activeNodeIds, setActiveNodes } = useColoringStore.getState();
           const currentMode = useAppModeStore.getState().currentMode;
           const searchQuery = useCommandLineStore.getState().input;
@@ -135,7 +121,8 @@ export const useGraphDeltaSync = (network: Network | null) => {
             event.node.group === 'phantom' ? getPhantomNodeStyle() : getRegularNodeStyle();
           const style = isSearchActive && !matchesSearch ? getInactiveNodeStyle() : baseStyle;
 
-          nodesDataSet.add({ ...event.node, ...style });
+          // Add node through GraphDataService (single source of truth)
+          graphDataService.addNode({ ...event.node, ...style });
 
           // Update activeNodeIds only if node matches search
           if (isSearchActive && matchesSearch) {
@@ -146,12 +133,12 @@ export const useGraphDeltaSync = (network: Network | null) => {
         }
 
         case 'node-removed': {
-
           // Release camera lock before removing node to prevent _lockedRedraw crash
           const viewPosition = currentNetwork.getViewPosition();
           currentNetwork.moveTo({ position: viewPosition, animation: false });
 
-          nodesDataSet.remove(event.node_id);
+          // Remove node through GraphDataService
+          graphDataService.removeNode(event.node_id);
 
           // Clear focus/selection if pointing to removed node
           const {
@@ -179,7 +166,8 @@ export const useGraphDeltaSync = (network: Network | null) => {
         }
 
         case 'node-updated': {
-          nodesDataSet.update({
+          // Update node through GraphDataService
+          graphDataService.updateNode({
             id: event.node.id,
             label: event.node.label,
             value: event.node.value,
@@ -189,20 +177,18 @@ export const useGraphDeltaSync = (network: Network | null) => {
         }
 
         case 'edge-added': {
-          const edgeId = `${event.edge.from}->${event.edge.to}`;
-          if (!edgesDataSet.get(edgeId)) {
-            edgesDataSet.add({ id: edgeId, from: event.edge.from, to: event.edge.to });
-          }
+          // Add edge through GraphDataService (handles deduplication)
+          graphDataService.addEdge(event.edge);
           break;
         }
 
         case 'edge-removed': {
-          edgesDataSet.remove(`${event.edge.from}->${event.edge.to}`);
+          // Remove edge through GraphDataService
+          graphDataService.removeEdge(event.edge);
           break;
         }
       }
 
-      const { activeNodeIds } = useColoringStore.getState();
       // Enable physics temporarily after any graph change
       currentNetwork.redraw();
       enablePhysicsTemporarily();

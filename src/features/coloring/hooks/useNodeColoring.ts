@@ -1,17 +1,16 @@
 import { useEffect } from 'react';
 import type { Network } from 'vis-network';
-import type { DataSet } from 'vis-data';
+import { graphDataService } from '../../graph/services/GraphDataService';
 import { useColoringStore } from '../store/coloringStore';
 import type { NodeType } from '../utils/nodeColors';
 import { getNodeStyle, getInactiveNodeStyle } from '../utils/nodeColors';
-import type { Node } from '../../../shared/types';
 
 /**
  * Hook for managing node colors in the graph visualization.
  *
  * Updates node styles based on selection state, focus, search filtering,
- * and connection relationships. This hook reads directly from the vis-network
- * DataSet to ensure it works with delta-synced nodes.
+ * and connection relationships. This hook uses GraphDataService as the
+ * single source of truth for node data.
  *
  * @param network - The vis-network instance to apply coloring to
  *
@@ -37,21 +36,12 @@ export const useNodeColoring = (network: Network | null) => {
   const activeNodeIds = useColoringStore(state => state.activeNodeIds);
 
   useEffect(() => {
-    if (!network) return;
+    if (!network || !graphDataService.isReady()) return;
 
-    // Type-safe access to internal vis-network structure
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const networkBody = (network as any).body;
-    if (!networkBody?.data?.nodes) {
-      console.warn('useNodeColoring: vis-network body structure not available');
-      return;
-    }
-
-    const nodesDataSet = networkBody.data.nodes as DataSet<Node>;
-    const allNodeIds = nodesDataSet.getIds() as string[];
+    const allNodeIds = graphDataService.getNodeIds();
 
     const getNodeType = (nodeId: string): NodeType => {
-      const node = nodesDataSet.get(nodeId);
+      const node = graphDataService.getNode(nodeId);
 
       // Priority order matters: selected > outgoing/incoming > phantom > regular
       if (nodeId === selectedNodeId) return 'selected';
@@ -74,6 +64,7 @@ export const useNodeColoring = (network: Network | null) => {
       return { id: nodeId, ...getNodeStyle(type, isFocused) };
     });
 
-    nodesDataSet.update(updates);
+    // Batch update all nodes at once for better performance
+    graphDataService.updateNodes(updates);
   }, [network, selectedNodeId, focusedNodeId, incomingNodeIds, outgoingNodeIds, activeNodeIds]);
 };

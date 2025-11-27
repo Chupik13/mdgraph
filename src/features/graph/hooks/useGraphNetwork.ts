@@ -14,6 +14,7 @@ import { DataSet } from 'vis-data';
 import { getVisNetworkOptions } from '../utils/visNetworkConfig';
 import { getPhantomNodeStyle, getRegularNodeStyle } from '../../coloring';
 import { useGraphStore } from '../store/graphStore';
+import { graphDataService } from '../services/GraphDataService';
 import type { GraphData } from '../../../shared/types';
 
 /**
@@ -134,9 +135,14 @@ export const useGraphNetwork = (
     setNetwork(networkInstance);
     setNetworkInstance(networkInstance);
 
+    // Initialize GraphDataService with the network instance
+    // This makes DataSet the single source of truth for graph data
+    graphDataService.initialize(networkInstance);
+
     return () => {
       isMounted = false;
       clearTimeout(timeout);
+      graphDataService.destroy();
       networkInstance.destroy();
       setNetwork(null);
       setNetworkInstance(null);

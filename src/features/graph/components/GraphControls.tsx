@@ -1,17 +1,76 @@
-import React, { memo } from 'react';
-import { useGraphStore } from '../store/graphStore';
+/**
+ * Graph viewport control panel component.
+ *
+ * Provides zoom controls and displays graph statistics (node count, zoom level).
+ * Subscribes to GraphDataService for real-time node count updates when
+ * nodes are added/removed via delta sync.
+ *
+ * @module features/graph/components/GraphControls
+ */
+
+import React, { memo, useState, useEffect } from 'react';
+import { graphDataService } from '../services/GraphDataService';
 import { useCameraStore } from '../../camera';
 
+/**
+ * Props for the GraphControls component.
+ *
+ * @property onZoomIn - Handler for zoom in button click
+ * @property onZoomOut - Handler for zoom out button click
+ * @property onFitAll - Handler for fit all nodes button click
+ */
 interface GraphControlsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitAll: () => void;
 }
 
+/**
+ * Graph control panel with zoom buttons and statistics display.
+ *
+ * @param props - Component props with zoom handlers
+ * @returns Control panel with zoom buttons and node count/scale display
+ *
+ * @remarks
+ * ## Real-time Updates
+ * The component subscribes to GraphDataService to receive real-time updates
+ * when nodes are added or removed. This ensures the node count is always
+ * accurate even during delta sync operations.
+ *
+ * ## Performance
+ * Uses React.memo to prevent unnecessary re-renders when parent updates.
+ * The subscription effect only runs once on mount.
+ *
+ * @example
+ * ```tsx
+ * <GraphControls
+ *   onZoomIn={() => cameraService.zoomIn()}
+ *   onZoomOut={() => cameraService.zoomOut()}
+ *   onFitAll={() => cameraService.fitAll()}
+ * />
+ * ```
+ */
 export const GraphControls: React.FC<GraphControlsProps> = memo(
   ({ onZoomIn, onZoomOut, onFitAll }) => {
     const scale = useCameraStore(state => state.scale);
-    const nodeCount = useGraphStore(state => state.graphData?.nodes.length ?? 0);
+    const [nodeCount, setNodeCount] = useState(0);
+
+    // Subscribe to GraphDataService changes for real-time node count
+    useEffect(() => {
+      const updateNodeCount = () => {
+        setNodeCount(graphDataService.getNodes().length);
+      };
+
+      // Set initial count
+      updateNodeCount();
+
+      // Subscribe to changes
+      const unsubscribe = graphDataService.subscribe(updateNodeCount);
+
+      return () => {
+        unsubscribe();
+      };
+    }, []);
 
     return (
       <div className="absolute top-4 right-4 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">

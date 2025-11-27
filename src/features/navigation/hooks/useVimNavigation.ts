@@ -8,8 +8,8 @@
  * @module features/navigation/hooks/useVimNavigation
  */
 
-import { useCallback, useMemo } from 'react';
-import { useGraphStore } from '../../graph/store/graphStore';
+import { useCallback } from 'react';
+import { graphDataService } from '../../graph/services/GraphDataService';
 import { useColoringStore } from '../../coloring';
 import { CameraService } from '../../camera';
 import type { Node } from '../../../shared/types';
@@ -66,22 +66,14 @@ export const useVimNavigation = () => {
   const focusedNodeId = useColoringStore(state => state.focusedNodeId);
   const activeNodeIds = useColoringStore(state => state.activeNodeIds);
   const focusNode = useColoringStore(state => state.focusNode);
-  const networkInstance = useGraphStore(state => state.networkInstance);
-
-  const cameraService = useMemo(() => {
-    return networkInstance ? new CameraService(networkInstance) : null;
-  }, [networkInstance]);
 
   /**
-   * Gets nodes directly from vis-network DataSet.
+   * Gets nodes from GraphDataService (single source of truth).
    * This reads runtime state and works with dynamically added nodes.
    */
   const getNodesFromNetwork = useCallback((): Node[] => {
-    if (!networkInstance) return [];
-    // @ts-expect-error - accessing internal vis-network structure
-    const nodesDataSet = networkInstance.body.data.nodes;
-    return nodesDataSet.get() as Node[];
-  }, [networkInstance]);
+    return graphDataService.getNodes();
+  }, []);
 
   /**
    * Gets the effective focused node ID, with fallback logic.
@@ -143,8 +135,9 @@ export const useVimNavigation = () => {
   const findNearestNodeInDirection = useCallback(
     (direction: 'left' | 'right' | 'up' | 'down'): Node | null => {
       const nodes = getNodesFromNetwork();
+      const network = graphDataService.getNetwork();
 
-      if (nodes.length === 0 || !networkInstance) {
+      if (nodes.length === 0 || !network) {
         return null;
       }
 
@@ -153,7 +146,7 @@ export const useVimNavigation = () => {
         return null;
       }
 
-      const positions = networkInstance.getPositions();
+      const positions = network.getPositions();
       const currentPos = positions[effectiveFocusedId];
 
       if (!currentPos) {
@@ -223,7 +216,7 @@ export const useVimNavigation = () => {
 
       return bestNode;
     },
-    [getNodesFromNetwork, networkInstance, activeNodeIds, getEffectiveFocusedNodeId]
+    [getNodesFromNetwork, activeNodeIds, getEffectiveFocusedNodeId]
   );
 
   /**
@@ -237,11 +230,13 @@ export const useVimNavigation = () => {
   const navigateToNode = useCallback(
     (nodeId: string) => {
       focusNode(nodeId);
-      if (cameraService) {
+      const network = graphDataService.getNetwork();
+      if (network) {
+        const cameraService = new CameraService(network);
         cameraService.focusOnNode(nodeId, 1.3);
       }
     },
-    [focusNode, cameraService]
+    [focusNode]
   );
 
   return {

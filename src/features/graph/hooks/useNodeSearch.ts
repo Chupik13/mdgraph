@@ -1,23 +1,24 @@
 import { useEffect } from 'react';
-import { useGraphStore } from '../store/graphStore';
+import { graphDataService } from '../services/GraphDataService';
 import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
 import type { Node } from '../../../shared/types';
 
 /**
- * Hook for searching nodes by name (label)
- * Works incrementally - filters on each input change
+ * Hook for searching nodes by name (label).
  *
- * Logic:
+ * Works incrementally - filters on each input change.
+ *
+ * @remarks
+ * ## Logic
  * - In search mode: filters nodes by query (case-insensitive)
  * - Empty query: all nodes active (activeNodeIds = null)
  * - Not in search mode: all nodes active
  *
- * Uses vis-network DataSet as source of truth to include delta-synced nodes.
+ * Uses GraphDataService as single source of truth for node data.
  */
 export const useNodeSearch = () => {
-  const networkInstance = useGraphStore(state => state.networkInstance);
   const setActiveNodes = useColoringStore(state => state.setActiveNodes);
   const input = useCommandLineStore(state => state.input);
   const currentMode = useAppModeStore(state => state.currentMode);
@@ -28,7 +29,7 @@ export const useNodeSearch = () => {
       return;
     }
 
-    if (!networkInstance) {
+    if (!graphDataService.isReady()) {
       return;
     }
 
@@ -37,10 +38,8 @@ export const useNodeSearch = () => {
       return;
     }
 
-    // Use vis-network DataSet as source of truth (includes delta-synced nodes)
-    // @ts-expect-error - accessing internal vis-network structure
-    const nodesDataSet = networkInstance.body.data.nodes;
-    const allNodes = nodesDataSet.get() as Node[];
+    // Use GraphDataService as single source of truth (includes delta-synced nodes)
+    const allNodes = graphDataService.getNodes();
 
     const query = input.toLowerCase();
     const matchedNodeIds = allNodes
@@ -48,5 +47,5 @@ export const useNodeSearch = () => {
       .map((node: Node) => node.id);
 
     setActiveNodes(matchedNodeIds);
-  }, [currentMode, input, networkInstance, setActiveNodes]);
+  }, [currentMode, input, setActiveNodes]);
 };

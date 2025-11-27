@@ -9,9 +9,9 @@
  * @module features/keybindings/hooks/useKeybindings
  */
 
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useKeybindingStore } from '../store/keybindingStore';
-import { useGraphStore } from '../../graph/store/graphStore';
+import { graphDataService } from '../../graph/services/GraphDataService';
 import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
@@ -85,14 +85,8 @@ export const useKeybindings = () => {
   const { navigateLeft, navigateRight, navigateUp, navigateDown } = useVimNavigation();
   const { navigateNextConnected, navigatePrevConnected } = useConnectedNavigation();
 
-  const graphData = useGraphStore(state => state.graphData);
   const selectNode = useColoringStore(state => state.selectNode);
   const focusNode = useColoringStore(state => state.focusNode);
-  const networkInstance = useGraphStore(state => state.networkInstance);
-
-  const cameraService = useMemo(() => {
-    return networkInstance ? new CameraService(networkInstance) : null;
-  }, [networkInstance]);
 
   const openCommandLine = useCommandLineStore(state => state.open);
 
@@ -141,19 +135,19 @@ export const useKeybindings = () => {
         case 'graph.selectFocusedNode': {
           const { focusedNodeId } = useColoringStore.getState();
           if (focusedNodeId) {
-            selectNode(focusedNodeId, graphData);
+            selectNode(focusedNodeId);
           }
           break;
         }
 
         case 'graph.openNode': {
           const { focusedNodeId } = useColoringStore.getState();
-          const { graphData } = useGraphStore.getState();
-          if (focusedNodeId && graphData) {
-            const node = graphData.nodes.find(n => n.id === focusedNodeId);
+          if (focusedNodeId && graphDataService.isReady()) {
+            // Use GraphDataService as single source of truth
+            const node = graphDataService.getNode(focusedNodeId);
             try {
               if (node && node.id) {
-                await TauriCommands.openFile(node?.id);
+                await TauriCommands.openFile(node.id);
               }
             } catch (error) {
               console.error('Failed to open file:', error);
@@ -188,9 +182,13 @@ export const useKeybindings = () => {
             }
           }
 
+          // Get network dynamically inside the action
+          const network = graphDataService.getNetwork();
+
           if (selectedNodeId && focusedNodeId !== selectedNodeId) {
             focusNode(selectedNodeId);
-            if (cameraService) {
+            if (network) {
+              const cameraService = new CameraService(network);
               const { incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();
               const nodesToFit = [
                 selectedNodeId,
@@ -200,9 +198,10 @@ export const useKeybindings = () => {
               cameraService.fitAll(nodesToFit);
             }
           } else if (selectedNodeId && focusedNodeId === selectedNodeId) {
-            selectNode(null, graphData);
+            selectNode(null);
           } else if (!selectedNodeId) {
-            if (cameraService) {
+            if (network) {
+              const cameraService = new CameraService(network);
               cameraService.resetZoom();
               focusNode(null);
             }
@@ -224,9 +223,7 @@ export const useKeybindings = () => {
       selectNode,
       focusNode,
       setMode,
-      cameraService,
       openCommandLine,
-      graphData,
     ]
   );
 

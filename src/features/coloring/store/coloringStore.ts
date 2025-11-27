@@ -12,8 +12,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
-import type { GraphData } from '../../../shared/types';
-import { useGraphStore } from '../../graph/store/graphStore';
+import { graphDataService } from '../../graph/services/GraphDataService';
 
 enableMapSet();
 
@@ -69,18 +68,18 @@ interface ColoringState {
    *
    * When a node is selected:
    * 1. The selected node ID is stored
-   * 2. All incoming and outgoing edges are calculated
+   * 2. All incoming and outgoing edges are calculated from GraphDataService
    * 3. The highlighted nodes set is updated
    * 4. The vis-network instance is updated to show visual selection
    *
    * @param nodeId - Node ID to select, or null to deselect
-   * @param graphData - Graph data for edge calculation
    *
    * @remarks
    * Selecting null clears all connection tracking and visual highlighting.
    * The vis-network selection state is synchronized with this store.
+   * Edge data is retrieved from GraphDataService (single source of truth).
    */
-  selectNode: (nodeId: string | null, graphData: GraphData | null) => void;
+  selectNode: (nodeId: string | null) => void;
 
   /**
    * Sets the focused node (camera target) without full selection.
@@ -100,13 +99,13 @@ interface ColoringState {
    * for hover effects or temporary emphasis.
    *
    * @param nodeId - Node ID to highlight
-   * @param graphData - Graph data for finding connections
    *
    * @remarks
    * Unlike `selectNode`, this doesn't update the selected state or
    * incoming/outgoing tracking.
+   * Edge data is retrieved from GraphDataService (single source of truth).
    */
-  highlightConnectedNodes: (nodeId: string, graphData: GraphData | null) => void;
+  highlightConnectedNodes: (nodeId: string) => void;
 
   /**
    * Clears all highlighting without affecting selection.
@@ -164,7 +163,7 @@ interface ColoringState {
  * @example
  * // Select a node
  * const selectNode = useColoringStore((state) => state.selectNode);
- * selectNode('note1', graphData);
+ * selectNode('note1');
  *
  * @example
  * // Get current selection and connections
@@ -187,28 +186,19 @@ export const useColoringStore = create<ColoringState>()(
       outgoingNodeIds: new Set(),
       activeNodeIds: null,
 
-      selectNode: (nodeId, graphData) =>
+      selectNode: nodeId =>
         set(state => {
           state.selectedNodeId = nodeId;
 
-          if (nodeId && graphData) {
-            const incoming = new Set<string>();
-            const outgoing = new Set<string>();
-
-            graphData.edges.forEach(edge => {
-              if (edge.from === nodeId) {
-                outgoing.add(edge.to);
-              }
-              if (edge.to === nodeId) {
-                incoming.add(edge.from);
-              }
-            });
+          if (nodeId) {
+            // Use GraphDataService as single source of truth for connections
+            const { incoming, outgoing } = graphDataService.getConnectedNodeIds(nodeId);
 
             state.incomingNodeIds = incoming;
             state.outgoingNodeIds = outgoing;
             state.highlightedNodes = new Set([nodeId, ...incoming, ...outgoing]);
 
-            const networkInstance = useGraphStore.getState().networkInstance;
+            const networkInstance = graphDataService.getNetwork();
             if (networkInstance) {
               networkInstance.selectNodes([nodeId]);
             }
@@ -217,7 +207,7 @@ export const useColoringStore = create<ColoringState>()(
             state.outgoingNodeIds.clear();
             state.highlightedNodes.clear();
 
-            const networkInstance = useGraphStore.getState().networkInstance;
+            const networkInstance = graphDataService.getNetwork();
             if (networkInstance) {
               networkInstance.unselectAll();
             }
@@ -229,19 +219,11 @@ export const useColoringStore = create<ColoringState>()(
           state.focusedNodeId = nodeId;
         }),
 
-      highlightConnectedNodes: (nodeId, graphData) =>
+      highlightConnectedNodes: nodeId =>
         set(state => {
-          if (!graphData) {
-            state.highlightedNodes = new Set([nodeId]);
-            return;
-          }
-
-          const connected = new Set<string>();
-          graphData.edges.forEach(edge => {
-            if (edge.from === nodeId) connected.add(edge.to);
-            if (edge.to === nodeId) connected.add(edge.from);
-          });
-
+          // Use GraphDataService as single source of truth for connections
+          const { incoming, outgoing } = graphDataService.getConnectedNodeIds(nodeId);
+          const connected = new Set([...incoming, ...outgoing]);
           state.highlightedNodes = new Set([nodeId, ...connected]);
         }),
 
