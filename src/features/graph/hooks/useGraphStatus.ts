@@ -8,27 +8,19 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { graphDataService, type GraphStatus } from '../services/GraphDataService';
-import type { GraphData } from '../../../shared/types';
+import {
+  graphDataService,
+  type GraphStatusSnapshot,
+} from '../services/GraphDataService';
 
 /**
- * Snapshot shape returned by getSnapshot.
+ * Gets the cached snapshot from the service.
+ *
+ * Returns the same object reference until status actually changes,
+ * preventing infinite render loops.
  */
-interface GraphStatusSnapshot {
-  status: GraphStatus;
-  error: string | null;
-  initialData: GraphData | null;
-}
-
-/**
- * Creates a snapshot of the current graph status.
- * Called by useSyncExternalStore to get the current state.
- */
-const getSnapshot = (): GraphStatusSnapshot => ({
-  status: graphDataService.getStatus(),
-  error: graphDataService.getError(),
-  initialData: graphDataService.getInitialData(),
-});
+const getSnapshot = (): GraphStatusSnapshot =>
+  graphDataService.getStatusSnapshot();
 
 /**
  * Server-side snapshot for SSR (if ever needed).

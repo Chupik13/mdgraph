@@ -17,6 +17,19 @@ type ChangeCallback = () => void;
 type StatusCallback = () => void;
 
 /**
+ * Immutable snapshot of graph service status for useSyncExternalStore.
+ *
+ * This object is cached and only replaced when values actually change,
+ * ensuring reference equality checks work correctly with React's
+ * useSyncExternalStore hook.
+ */
+export interface GraphStatusSnapshot {
+  status: GraphStatus;
+  error: string | null;
+  initialData: GraphData | null;
+}
+
+/**
  * Status of the graph data service.
  *
  * - `idle` - Initial state, no data loaded
@@ -76,6 +89,13 @@ class GraphDataService {
   private _status: GraphStatus = 'idle';
   private _error: string | null = null;
   private _initialGraphData: GraphData | null = null;
+
+  /** Cached snapshot for useSyncExternalStore (reference equality) */
+  private _statusSnapshot: GraphStatusSnapshot = {
+    status: 'idle',
+    error: null,
+    initialData: null,
+  };
 
   /**
    * Initializes the service with a Network instance.
@@ -173,6 +193,18 @@ class GraphDataService {
    */
   getInitialData(): GraphData | null {
     return this._initialGraphData;
+  }
+
+  /**
+   * Gets the cached status snapshot for useSyncExternalStore.
+   *
+   * Returns the same object reference until status actually changes,
+   * preventing infinite render loops in React's useSyncExternalStore.
+   *
+   * @returns Cached status snapshot
+   */
+  getStatusSnapshot(): GraphStatusSnapshot {
+    return this._statusSnapshot;
   }
 
   /**
@@ -424,8 +456,16 @@ class GraphDataService {
 
   /**
    * Notifies all subscribers about a status change.
+   *
+   * Rebuilds the cached snapshot before notifying, ensuring
+   * useSyncExternalStore gets a new reference only when values change.
    */
   private notifyStatusChange(): void {
+    this._statusSnapshot = {
+      status: this._status,
+      error: this._error,
+      initialData: this._initialGraphData,
+    };
     this.statusCallbacks.forEach(cb => cb());
   }
 }
