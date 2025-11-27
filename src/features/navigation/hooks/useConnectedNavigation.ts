@@ -108,7 +108,7 @@ export const useConnectedNavigation = () => {
     }
 
     return sortNodesByAngle(Array.from(connectedNodeIds), positions, selectedPos);
-  }, [networkInstance]);
+  }, [graphDataService]);
 
   /**
    * Navigates to the next connected node in clockwise order.

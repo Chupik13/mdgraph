@@ -4,6 +4,7 @@ import { useColoringStore } from '../../coloring';
 import { useCommandLineStore } from '../../command-line/store/commandLineStore';
 import { useAppModeStore } from '../../../shared/store/appModeStore';
 import { CameraService, FAST_ANIMATION } from '../../camera';
+import { graphDataService } from '../services/GraphDataService';
 
 /**
  * Hook for incremental node search by label with automatic viewport adjustment.
@@ -28,7 +29,6 @@ import { CameraService, FAST_ANIMATION } from '../../camera';
  * // Matching nodes are highlighted, camera zooms to fit them
  */
 export const useNodeSearch = () => {
-  const graphData = useGraphStore((state) => state.graphData);
   const setActiveNodes = useColoringStore((state) => state.setActiveNodes);
   const input = useCommandLineStore((state) => state.input);
   const currentMode = useAppModeStore((state) => state.currentMode);
@@ -67,5 +67,5 @@ export const useNodeSearch = () => {
     if (matchedNodeIds.length > 0 && cameraService) {
       cameraService.fitAll(matchedNodeIds, FAST_ANIMATION);
     }
-  }, [currentMode, input, graphData, setActiveNodes, cameraService]);
+  }, [currentMode, input, graphDataService, setActiveNodes, cameraService]);
 };

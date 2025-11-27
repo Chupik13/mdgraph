@@ -51,8 +51,6 @@ export const useNodeColoring = (network: Network | null) => {
       return 'regular';
     };
 
-    const updates = allNodeIds.map(nodeId => {
-      const isInactive = activeNodeIds !== null && !activeNodeIds.has(nodeId);
     /**
      * Computes the effective set of active (visible) nodes, extending search
      * results to include the selected node and its connections.
@@ -75,8 +73,8 @@ export const useNodeColoring = (network: Network | null) => {
 
     const effectiveActiveNodes = getEffectiveActiveNodes();
 
-    const updates = graphData.nodes.map((node) => {
-      const isInactive = effectiveActiveNodes !== null && !effectiveActiveNodes.has(node.id);
+    const updates = allNodeIds.map((nodeId) => {
+      const isInactive = effectiveActiveNodes !== null && !effectiveActiveNodes.has(nodeId);
 
       if (isInactive) {
         return { id: nodeId, ...getInactiveNodeStyle() };

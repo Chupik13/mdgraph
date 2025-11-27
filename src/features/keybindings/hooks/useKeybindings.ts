@@ -194,37 +194,37 @@ export const useKeybindings = () => {
           // Get network dynamically inside the action
           const network = graphDataService.getNetwork();
 
-          if (selectedNodeId && focusedNodeId !== selectedNodeId) {
-            focusNode(selectedNodeId);
-            if (network) {
+          if(network){
               const cameraService = new CameraService(network);
-              const { incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();
-              const nodesToFit = [
-                selectedNodeId,
-                ...Array.from(incomingNodeIds),
-                ...Array.from(outgoingNodeIds),
-              ];
-              cameraService.fitAll(nodesToFit);
-            }
-          } else if (selectedNodeId && focusedNodeId === selectedNodeId) {
-            selectNode(null);
-          } else if (!selectedNodeId) {
-            if (cameraService) {
-              const { activeNodeIds } = useColoringStore.getState();
-              const nodeIds = activeNodeIds ? Array.from(activeNodeIds) : [];
-              cameraService.fitAll(nodeIds);
-              focusNode(null);
-            }
+              if (selectedNodeId && focusedNodeId !== selectedNodeId) {
+                  focusNode(selectedNodeId);
+                  const { incomingNodeIds, outgoingNodeIds } = useColoringStore.getState();
+                  const nodesToFit = [
+                      selectedNodeId,
+                      ...Array.from(incomingNodeIds),
+                      ...Array.from(outgoingNodeIds),
+                  ];
+                  cameraService.fitAll(nodesToFit);
+              } else if (selectedNodeId && focusedNodeId === selectedNodeId) {
+                  selectNode(null);
+              } else if (!selectedNodeId) {
+                  if (cameraService) {
+                      const { activeNodeIds } = useColoringStore.getState();
+                      const nodeIds = activeNodeIds ? Array.from(activeNodeIds) : [];
+                      cameraService.fitAll(nodeIds);
+                      focusNode(null);
+                  }
+              }
           }
           break;
         }
 
         default:
-          console.warn(`Unknown action: ${action}`);
+            console.warn(`Unknown action: ${action}`);
       }
     },
     [
-      navigateLeft,
+        navigateLeft,
       navigateRight,
       navigateUp,
       navigateDown,

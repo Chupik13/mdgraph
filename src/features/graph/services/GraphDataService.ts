@@ -158,11 +158,18 @@ class GraphDataService {
   /**
    * Adds a new node to the graph.
    *
+   * If a node with the same ID already exists, it will be updated instead.
+   *
    * @param node - Node to add (with styles already applied)
    */
   addNode(node: Node): void {
     if (!this.nodesDataSet) return;
-    this.nodesDataSet.add(node);
+
+    if (this.nodesDataSet.get(node.id)) {
+      this.nodesDataSet.update(node);
+    } else {
+      this.nodesDataSet.add(node);
+    }
     this.notifyChange();
   }
 
