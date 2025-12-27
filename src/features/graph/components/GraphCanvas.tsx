@@ -14,6 +14,7 @@ import { useGraphDeltaSync } from '../hooks/useGraphDeltaSync';
 import { useNodeSearch } from '../hooks/useNodeSearch';
 import { useNodeSelection } from '../hooks/useNodeSelection';
 import { useGraphStatus } from '../hooks/useGraphStatus';
+import { useFpsCounter } from '../hooks/useFpsCounter';
 import { useNodeColoring } from '../../coloring';
 import { usePreviewStore } from '../../preview/store/previewStore';
 
@@ -43,6 +44,7 @@ export const GraphCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { status, error, initialData } = useGraphStatus();
   const isPreviewOpen = usePreviewStore((state) => state.isOpen);
+  const fps = useFpsCounter(true);
 
   const { network } = useGraphNetwork(containerRef, initialData);
 
@@ -53,6 +55,11 @@ export const GraphCanvas: React.FC = () => {
 
   return (
     <div className={`relative w-full h-full bg-transparent transition-[filter] duration-200 ${isPreviewOpen ? 'blur-[2px]' : ''}`}>
+      {/* FPS counter */}
+      <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-xs font-mono rounded z-50">
+        {fps} FPS
+      </div>
+
       {/* vis-network */}
       <div ref={containerRef} className="w-full h-full" data-testid="graph-canvas" />
 
