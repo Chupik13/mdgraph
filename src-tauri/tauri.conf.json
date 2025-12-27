@@ -11,12 +11,13 @@
   },
   "app": {
     "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "mdgraph",
         "width": 1200,
         "height": 800,
-        "decorations": false,
+        "decorations": true,
         "transparent": true,
         "fullscreen": false,
         "resizable": true,

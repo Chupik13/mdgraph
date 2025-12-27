@@ -94,6 +94,18 @@ pub fn run() {
                 }
             }
 
+            #[cfg(target_os = "macos")]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_effects(tauri::window::EffectsBuilder::new()
+                        .effect(tauri::window::Effect::HudWindow)
+                        .state(tauri::window::EffectState::Active)
+                        .build());
+
+                    println!("[Window] macOS HudWindow vibrancy effect applied");
+                }
+            }
+
             let config = load_config().unwrap_or_else(|e| {
                 eprintln!("[Error] Failed to load configuration: {}", e);
                 eprintln!("[Info] Using empty configuration");
