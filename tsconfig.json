@@ -58,7 +58,9 @@
   "exclude": [
     "node_modules",
     "dist",
-    "src-tauri"
+    "src-tauri",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ],
   "references": [
     { "path": "./tsconfig.node.json" }

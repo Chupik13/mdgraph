@@ -11,7 +11,9 @@
     "format": "prettier --write src/**/*.{js,ts,tsx,css}",
     "tauri": "tauri",
     "dev": "npx tauri dev",
-    "build": "npx tauri build"
+    "build": "npx tauri build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
@@ -23,11 +25,14 @@
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.6.2",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^4.0.14",
+    "vue-eslint-parser": "^10.2.0"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",

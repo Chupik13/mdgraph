@@ -1,0 +1,1 @@
+export { useFpsCounter } from './useFpsCounter';

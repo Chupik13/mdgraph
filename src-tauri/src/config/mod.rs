@@ -39,6 +39,44 @@ pub struct PreviewerConfig {
     pub offset: usize,
 }
 
+/// Keybinding configuration for vim-like key sequences.
+///
+/// Supports vim-style key notation including modifiers (<C-x>, <S-j>),
+/// special keys (<Space>, <Escape>), and leader key (<leader>).
+///
+/// # Fields
+///
+/// * `leader` - The leader key (default: " " for Space)
+/// * `timeout` - Timeout in ms for incomplete sequences (default: 500)
+/// * `bindings` - Map of key notation to command ID
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeybindingsConfig {
+    #[serde(default = "default_leader")]
+    pub leader: String,
+    #[serde(default = "default_timeout")]
+    pub timeout: u32,
+    #[serde(default)]
+    pub bindings: std::collections::HashMap<String, String>,
+}
+
+fn default_leader() -> String {
+    " ".to_string()
+}
+
+fn default_timeout() -> u32 {
+    500
+}
+
+impl Default for KeybindingsConfig {
+    fn default() -> Self {
+        Self {
+            leader: default_leader(),
+            timeout: default_timeout(),
+            bindings: std::collections::HashMap::new(),
+        }
+    }
+}
+
 /// Application configuration structure.
 ///
 /// Contains all configurable parameters for the mdgraph2 application. This structure
@@ -51,12 +89,15 @@ pub struct PreviewerConfig {
 /// * `template_phantom_node` - Optional path to the template file used for creating phantom nodes.
 ///   When a phantom node is converted to a real file, this template is used as the base content.
 /// * `previewer` - Configuration for the markdown preview feature.
+/// * `keybindings` - Optional vim-like keybinding configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub root_dir: Option<String>,
     pub template_phantom_node: Option<String>,
     #[serde(default)]
     pub previewer: PreviewerConfig,
+    #[serde(default)]
+    pub keybindings: Option<KeybindingsConfig>,
 }
 
 impl Default for AppConfig {
@@ -69,6 +110,7 @@ impl Default for AppConfig {
             root_dir: None,
             template_phantom_node: None,
             previewer: PreviewerConfig::default(),
+            keybindings: None,
         }
     }
 }
@@ -229,6 +271,7 @@ impl AppConfig {
             root_dir: args.root_dir.clone(),
             template_phantom_node: args.template_phantom_node.clone(),
             previewer: PreviewerConfig::default(),
+            keybindings: None, // CLI doesn't support keybindings, loaded from file only
         }
     }
 
@@ -254,6 +297,7 @@ impl AppConfig {
             root_dir: override_config.root_dir.or(base.root_dir),
             template_phantom_node: override_config.template_phantom_node.or(base.template_phantom_node),
             previewer: base.previewer, // Previewer config comes from file only
+            keybindings: base.keybindings, // Keybindings config comes from file only
         }
     }
 }

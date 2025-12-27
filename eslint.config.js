@@ -8,7 +8,7 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
   // Ignore patterns (replaces .eslintignore)
   {
-    ignores: ['dist/**', 'node_modules/**', 'src-tauri/**', '*.d.ts'],
+    ignores: ['dist/**', 'node_modules/**', 'src-tauri/**', 'search-fixes/**', '*.d.ts'],
   },
 
   // Base JavaScript config
@@ -83,6 +83,7 @@ export default [
       'no-debugger': 'warn',
       'prefer-const': 'error',
       'no-var': 'error',
+      'curly': ['error', 'all'],
     },
   },
 
